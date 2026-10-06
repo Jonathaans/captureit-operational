@@ -1,0 +1,28 @@
+Upgrade ke v2.9 - Preview Video dan Printer Epson/Windows
+=========================================================
+
+Perubahan:
+- Panel hasil Self Service mempunyai preview MP4 dengan kontrol play.
+- Foto final digunakan sebagai poster video.
+- Menu printer menjadi generik untuk semua printer Windows, termasuk DNP dan
+  Epson. DNP tetap mendapat petunjuk 2inch cut; Epson mendapat petunjuk
+  ukuran kertas, orientasi, kualitas, dan borderless.
+- Jalur cetak tetap menggunakan antrean Windows melalui PyWin32 GDI dengan
+  fallback Windows PrintDocument.
+
+Untuk printer Epson:
+1. Pastikan Epson sudah terpasang di Windows dan muncul di Devices and
+   Printers.
+2. Buka Settings > Printer Foto, klik Refresh, lalu pilih nama Epson.
+3. Klik Buka Printing Preferences dan atur ukuran kertas foto, orientasi,
+   kualitas, dan Borderless jika media mendukungnya.
+4. Klik Test Print. Setelah berhasil, aktifkan Tampilkan tombol Print.
+
+Mode Strip 2×6/2inch cut dirancang untuk alur kertas DNP. Pada Epson, gunakan
+Full 4R dan pengaturan ukuran media Epson kecuali driver Epson Anda memang
+mendukung pemotongan strip.
+
+Pemasangan:
+- Ekstrak ZIP ke folder baru.
+- Salin settings.json, templates, dan data/custom_qr.png dari versi lama.
+- Jalankan 00_INSTALL.bat, 01_START.bat, lalu 03_OPEN_SELF_SERVICE.bat.

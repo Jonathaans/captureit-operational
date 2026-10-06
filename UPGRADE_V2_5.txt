@@ -1,0 +1,26 @@
+Upgrade ke v2.5 - Full 4R / Strip Switch
+=========================================
+
+Pilihan format sekarang eksplisit:
+
+1. FULL 4R (sakelar Mode Strip OFF)
+   - Gunakan template 4x6, misalnya 1200x1800.
+   - Driver DS-RX1: Paper Size (6x4).
+   - Driver DS-RX1: 2inch cut = Disable.
+   - Gambar diputar mengikuti orientasi media lalu diisi ke seluruh area cetak
+     tanpa crop.
+
+2. STRIP 2x6 (sakelar Mode Strip ON)
+   - Gunakan template strip, misalnya 600x1800.
+   - Aplikasi menggandakan strip menjadi dua pada satu media 4x6.
+   - Driver DS-RX1: Paper Size (6x4).
+   - Driver DS-RX1: 2inch cut = Enable.
+
+Klik "Buka DNP Printing Preferences" untuk mengubah 2inch cut. Fitur tersebut
+adalah pengaturan driver DNP dan tidak dapat dipastikan nilainya melalui API
+printer Windows standar.
+
+Bug v2.4 yang diperbaiki:
+- PyWin32 tidak lagi gagal saat CDC.StartDoc mengembalikan None.
+- PowerShell tidak lagi mengirim RectangleF ke overload Rectangle.
+- Mode Auto dihapus agar hasil 4R tidak pernah berubah menjadi strip sendiri.

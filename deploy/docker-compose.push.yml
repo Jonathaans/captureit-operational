@@ -1,0 +1,9 @@
+services:
+  captureit-ops:
+    environment:
+      FIREBASE_SERVICE_ACCOUNT_FILE: /run/secrets/firebase-service-account.json
+    volumes:
+      - type: bind
+        source: ${FIREBASE_SERVICE_ACCOUNT_HOST_FILE:?Set the absolute path to the private service-account JSON on the VPS}
+        target: /run/secrets/firebase-service-account.json
+        read_only: true

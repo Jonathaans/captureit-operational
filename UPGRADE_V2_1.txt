@@ -1,0 +1,42 @@
+Upgrade ke v2.1 - QR Download + DNP Print
+==========================================
+
+FITUR BARU
+----------
+- QR hasil foto tampil setelah proses render selesai.
+- Mode QR "Link foto otomatis" membuat QR berbeda untuk setiap output JPG.
+- Mode QR "Link tetap/custom" dapat diarahkan ke URL apa pun.
+- Tujuan, label, akses LAN, dan durasi layar hasil dapat diubah di Settings.
+- Tombol Print mengirim JPG final ke printer DNP melalui driver Windows.
+- Printer, jumlah copy, serta fit Contain/Cover dapat dipilih di Settings.
+- Template sekarang memiliki tombol Delete Template dengan konfirmasi.
+
+SETUP QR FOTO OTOMATIS
+----------------------
+1. Buka Settings > QR Hasil Foto.
+2. Pilih "Link foto otomatis per sesi".
+3. Aktifkan "Izinkan HP mengakses aplikasi melalui jaringan lokal".
+4. Simpan lalu restart aplikasi.
+5. Pastikan PC dan HP berada pada jaringan/Wi-Fi yang sama.
+6. Jika Windows Firewall meminta izin, izinkan akses Private Network.
+
+Public/LAN Base URL boleh dikosongkan agar IP PC dideteksi otomatis. Jika
+menggunakan domain, tunnel, atau server publik, isi URL tersebut secara manual.
+
+SETUP PRINTER DNP
+-----------------
+1. Install driver resmi DNP dan pastikan printer terlihat di Windows Printers.
+2. Atur ukuran media/orientasi di DNP Printer Properties.
+3. Buka Settings > DNP Print lalu tekan Refresh.
+4. Pilih printer DNP, aktifkan tombol Print, pilih copy dan Photo fit.
+5. Klik Save Settings.
+
+Contain mempertahankan seluruh layout dan dapat memberi margin putih.
+Cover memenuhi media tetapi dapat memotong tepi layout.
+
+PENTING UNTUK UPGRADE
+---------------------
+- Jalankan kembali 00_INSTALL.bat karena v2.1 menambahkan qrcode dan pywin32.
+- Pertahankan settings.json, folder templates, dan folder data lama bila
+  meng-upgrade instalasi yang sudah dipakai.
+

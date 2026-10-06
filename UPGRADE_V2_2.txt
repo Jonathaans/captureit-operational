@@ -1,0 +1,52 @@
+Upgrade ke v2.2 - Google Drive Desktop + Custom QR/Barcode
+============================================================
+
+FITUR BARU
+----------
+- Tanpa Google Drive API dan tanpa login Google di aplikasi.
+- Output JPG dan MP4 dipisahkan ke folder Photos dan Videos.
+- Hasil dapat disalin otomatis ke dua folder lokal Google Drive Desktop.
+- Operator dapat mengunggah dan mengganti gambar QR/barcode dari Settings.
+- QR/barcode custom yang sama tampil setelah setiap sesi selesai.
+- Tombol Print selalu tersedia pada layar hasil dan aktif setelah printer DNP
+  diaktifkan serta dipilih di Settings.
+
+SETUP GOOGLE DRIVE DESKTOP
+--------------------------
+1. Pastikan Google Drive Desktop sudah terpasang, login, dan berjalan.
+2. Buat dua folder, misalnya:
+   G:\My Drive\RecordCountdown\Photos
+   G:\My Drive\RecordCountdown\Videos
+3. Buka Settings > Google Drive Desktop Auto-Sync.
+4. Isi Folder foto dan Folder video menggunakan alamat folder Windows.
+5. Aktifkan copy otomatis dan opsi video jika MP4 juga ingin disinkronkan.
+6. Klik Test Folder. Pastikan Foto: siap dan Video: siap.
+7. Klik Save Settings.
+
+SETUP QR/BARCODE FOLDER DRIVE
+-----------------------------
+1. Share folder Drive tujuan sesuai akses yang Anda inginkan.
+2. Buat QR/barcode dari link folder tersebut di luar aplikasi.
+3. Buka Settings > QR Hasil Foto.
+4. Pilih mode Upload QR/Barcode Google Drive.
+5. Pilih gambar PNG, JPG, atau WebP lalu klik Upload / Ganti QR.
+6. Klik Preview QR untuk memeriksa tampilannya.
+
+Aplikasi hanya menampilkan gambar QR/barcode tersebut. Google Drive Desktop
+menangani upload file secara otomatis. Jika link folder berubah, cukup unggah
+gambar QR/barcode baru dari Settings.
+
+SETUP PRINT DNP
+---------------
+1. Pastikan driver DNP terpasang dan printer terlihat serta Idle di Windows.
+2. Buka Settings > DNP Print dan klik Refresh.
+3. Aktifkan Print, pilih printer, jumlah copy, dan Photo fit.
+4. Klik Save Settings.
+5. Tombol Print Foto akan aktif pada layar hasil self-service.
+
+CATATAN UPGRADE
+---------------
+- Jalankan 00_INSTALL.bat jika belum pernah menginstal dependency v2.1.
+- Tidak ada dependency atau kredensial Google baru pada v2.2.
+- Saat mengganti versi, pertahankan settings.json, folder templates, dan data
+  dari instalasi lama bila diperlukan.

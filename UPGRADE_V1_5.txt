@@ -1,0 +1,37 @@
+Upgrade ke v1.5
+================
+
+Perbaikan utama:
+- Live preview kamera tetap terlihat di belakang countdown selama sesi.
+- Transport preview diganti ke polling frame JPEG agar stabil di Chrome Windows.
+- Tidak ada lagi ikon gambar rusak dari endpoint multipart MJPEG.
+- Ada 3 sesi sesuai mapping overlay sample.
+- Setiap sesi merekam video tepat 5 detik selama countdown 5-4-3-2-1.
+- Frame terakhir video 5 detik menjadi foto hasil sesi tersebut.
+- Sesi 1 masuk layout 1, sesi 2 masuk layout 2, sesi 3 masuk layout 3.
+- Final MP4 berdurasi 5 detik dan memutar ketiga video secara bersamaan.
+- Final JPG memakai pose/frame terakhir dari masing-masing sesi.
+
+Workflow:
+Warmup
+-> Sesi 1: live preview + rekam 5 detik -> frame terakhir = foto 1
+-> ganti pose
+-> Sesi 2: live preview + rekam 5 detik -> frame terakhir = foto 2
+-> ganti pose
+-> Sesi 3: live preview + rekam 5 detik -> frame terakhir = foto 3
+-> render MP4 5 detik + JPG
+
+Langkah uji:
+1. Extract paket ke folder baru.
+2. Jalankan 00_INSTALL.bat jika dependency belum terpasang.
+3. Jalankan 01_START.bat.
+4. Buka Settings, pilih EOS Webcam Utility, lalu Save Settings.
+5. Untuk orientasi kamera contoh, gunakan Rotation 270 derajat.
+6. Jalankan Record 3s Test untuk memeriksa orientasi.
+7. Buka Capture, Start Preview, lalu Start Session.
+
+Catatan:
+- Browser preview framing berhenti saat Start Session agar kamera tidak dibuka
+  dua aplikasi sekaligus.
+- Area yang sama langsung beralih ke feed FFmpeg dari proses rekaman.
+- Flash singkat setelah angka 1 bukan tambahan durasi video.

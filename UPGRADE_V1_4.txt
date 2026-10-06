@@ -1,0 +1,27 @@
+Upgrade ke v1.4
+=================
+
+Fokus versi ini:
+- live preview tetap tampil selama seluruh rangkaian foto
+- countdown 5-4-3-2-1 untuk setiap foto
+- capture dilakukan sesudah angka 1 selesai
+- preview sesi dan output memakai transform rotation/mirror yang sama
+
+Workflow:
+Warmup -> Foto 1: 5-4-3-2-1 -> capture -> ganti pose
+       -> Foto 2: 5-4-3-2-1 -> capture -> ganti pose
+       -> Foto 3: 5-4-3-2-1 -> capture -> render hasil
+
+Langkah uji:
+1. Extract paket ke folder baru.
+2. Jalankan 00_INSTALL.bat bila dependency belum terpasang.
+3. Jalankan 01_START.bat.
+4. Settings > Save Settings, lalu Record 3s Test.
+5. Untuk orientasi kamera pada rekaman contoh, gunakan Rotation = 270.
+6. Buka Capture, Start Preview, lalu Start Session.
+
+Catatan:
+- Browser preview berhenti hanya sebagai pemilik kamera. Area preview langsung
+  beralih ke feed FFmpeg dari proses rekaman yang sama, sehingga gambar tetap
+  live dan kamera tidak dibuka dua kali.
+- Capture after 1 default adalah 0.25 detik dan dapat diubah di Template Editor.

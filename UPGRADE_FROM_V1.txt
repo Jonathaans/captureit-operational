@@ -1,0 +1,15 @@
+Upgrade dari RecordCountdown Studio v1
+=======================================
+1. Stop 01_START.bat versi lama.
+2. Backup folder templates jika Anda sudah membuat template tambahan.
+3. Gunakan paket v1.1 ini sebagai folder baru, atau replace app.py + static/index.html + settings.json.
+4. Jalankan 01_START.bat.
+5. Settings > Camera warmup = 3 detik.
+6. Test session lagi.
+
+Masalah yang diperbaiki:
+Camera DirectShow/EOS Webcam Utility sebelumnya dibuka ulang per take.
+Pada hasil contoh, baris Take 1 terlihat freeze sampai sekitar detik 3.4,
+sementara Take 2 dan Take 3 sudah bergerak dari awal.
+V1.1 membuka kamera sekali untuk seluruh session dan memotong take dari
+satu timeline continuous.

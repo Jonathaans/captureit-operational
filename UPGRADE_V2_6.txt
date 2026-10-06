@@ -1,0 +1,32 @@
+Upgrade ke v2.6 - Orientation Lock
+===================================
+
+Masalah yang diperbaiki
+-----------------------
+Preview dapat terlihat memakai Rotation 180 derajat, tetapi ketika Mulai Foto
+ditekan live preview/hasil kembali memakai nilai lama 0 derajat. Hal sebaliknya
+juga dapat terjadi.
+
+Perbaikan v2.6
+--------------
+1. Start Session menyimpan dan mengirim nilai Camera Transform secara sinkron.
+2. Satu snapshot setting dikunci untuk seluruh sesi; perubahan/autosave lain
+   tidak dapat mengubah orientasi di tengah sesi.
+3. Preview browser dan preview sesi memakai transform UI yang sama.
+4. Video take menerapkan transform tepat satu kali saat ekstraksi.
+5. Snapshot, JPG, MP4, dan hot-folder memakai take dengan orientasi yang sama.
+
+Cara upgrade
+------------
+1. Tutup RecordCountdown Studio lama.
+2. Ekstrak paket v2.6 ke folder baru.
+3. Jika perlu, salin folder templates dan pengaturan event dari versi lama.
+4. Jalankan 00_INSTALL.bat lalu 01_START.bat.
+5. Buka Settings, pilih Rotation yang diinginkan, lalu klik Record 3s Test.
+6. Buka Self Service dan pastikan orientasi tidak berubah setelah Mulai Foto.
+
+Catatan
+-------
+Kamera hanya dibuka satu kali oleh FFmpeg selama sesi. Kamera yang tercabut
+tetap akan menampilkan layar EOS Webcam Utility; sambungkan kembali kamera dan
+mulai ulang sesi. Hal ini terpisah dari perbaikan rotasi.

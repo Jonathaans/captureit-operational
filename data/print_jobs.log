@@ -1,0 +1,4 @@
+2026-10-02T14:26:48.387+07:00 Mulai print file='print_test.jpg' printer='DS-RX1' copies=1 fit=strip2up available=['DS-RX1', 'DS-RX1 (Copy 1)', 'DS-RX1 (Copy 5)', 'EPSON L18050 Series', 'EPSON L18050 Series (Copy 1)', 'EPSON L18050 Series (Copy 2)', 'EPSON L5290 Series', 'Fax', 'Microsoft Print to PDF', 'Microsoft XPS Document Writer']
+2026-10-02T14:26:48.806+07:00 Print dikirim method=PyWin32 GDI pixel-perfect printer='DS-RX1'
+2026-10-02T14:29:05.597+07:00 Mulai print file='recordcountdown_20261002_142716_359.jpg' printer='DS-RX1' copies=1 fit=strip2up available=['DS-RX1', 'DS-RX1 (Copy 1)', 'DS-RX1 (Copy 5)', 'EPSON L18050 Series', 'EPSON L18050 Series (Copy 1)', 'EPSON L18050 Series (Copy 2)', 'EPSON L5290 Series', 'Fax', 'Microsoft Print to PDF', 'Microsoft XPS Document Writer']
+2026-10-02T14:29:05.829+07:00 Print dikirim method=PyWin32 GDI pixel-perfect printer='DS-RX1'

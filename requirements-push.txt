@@ -1,0 +1,3 @@
+# Optional for a direct Python deployment; installed by the Docker image.
+# Official Admin SDK; uses the supported registration-token API for web/Android compatibility.
+firebase-admin==7.7.0

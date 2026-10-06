@@ -1,0 +1,20 @@
+Upgrade ke v2.10 - Video HD
+===========================
+
+Template Editor memiliki pengaturan Video quality:
+- Standard: ukuran template, CRF 20, file lebih kecil;
+- HD: 1,5× canvas, CRF 17, encoder medium;
+- HD+: 2× canvas, CRF 15, encoder slow.
+
+Template lama otomatis memakai HD jika belum mempunyai field quality.
+Untuk detail sumber yang lebih tinggi, buka Settings > Camera & FFmpeg lalu
+isi Input resolution dengan 1920x1080 jika kamera mendukung mode tersebut.
+
+Pemasangan:
+1. Ekstrak ZIP v2.10 ke folder baru.
+2. Salin settings.json, templates, dan data/custom_qr.png dari versi lama.
+3. Jalankan 00_INSTALL.bat dan 01_START.bat.
+4. Buka Templates, pilih template, pilih Video quality HD, lalu klik Save.
+
+HD/HD+ meningkatkan ukuran render dan kualitas kompresi. Waktu rendering dan
+ukuran MP4 dapat bertambah, terutama pada HD+.

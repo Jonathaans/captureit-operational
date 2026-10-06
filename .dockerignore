@@ -1,0 +1,12 @@
+.env
+*.sqlite3
+__pycache__
+*.pyc
+.git
+attendance-photos/
+private-profile-uploads/
+cash-advance-documents/
+branding-assets/
+*service-account*.json
+firebase-*.json
+secrets/

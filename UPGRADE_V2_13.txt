@@ -1,0 +1,16 @@
+RecordCountdown Studio v2.13
+
+Perbaikan kamera fleksibel:
+
+1. Buka Settings.
+2. Pada Sumber sesi pilih "Browser MediaRecorder — webcam/Logitech C920".
+3. Pada Kamera browser pilih "HD Pro Webcam C920 (046d:08e5)".
+4. Klik Save Settings.
+5. Buka Capture, klik Refresh Cameras, Start Preview, lalu Start Session.
+
+Mode ini tidak membutuhkan C920 muncul di daftar FFmpeg DirectShow. Browser
+merekam satu video WebM, kemudian aplikasi mengekstrak setiap sesi, membuat
+foto template, video template, QR, dan print seperti mode DirectShow.
+
+Gunakan mode "FFmpeg DirectShow" bila EOS Webcam Utility atau kamera lain
+sudah muncul pada daftar Camera device Settings.

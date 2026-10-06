@@ -1,0 +1,36 @@
+Upgrade ke v2.3 - DNP Print Fix
+================================
+
+Versi ini kembali memakai alur awal RecordCountdown untuk mengambil foto dan
+video. dslrBooth tidak mengambil alih sesi kamera.
+
+PERBAIKAN
+---------
+- DS-RX1 dan printer DNP lain dipilih otomatis bila terdeteksi.
+- Pencocokan nama printer tidak lagi harus sama persis dengan setting lama.
+- Metode utama menggunakan Windows PrintDocument.
+- Jika PrintDocument gagal, aplikasi otomatis mencoba PyWin32 GDI.
+- Tombol Test Print DNP tersedia di Settings.
+- Tombol Print hasil memeriksa kembali printer sebelum dapat ditekan.
+- Pesan kesalahan lebih lengkap dan log tersedia di data\print_jobs.log.
+
+CARA UJI
+--------
+1. Pastikan driver DNP resmi sudah terpasang.
+2. Di Windows Settings > Printers, pastikan DS-RX1 berstatus Idle.
+3. Buka DNP Printer Properties dan tentukan paper size serta orientation.
+4. Restart RecordCountdown setelah memasang atau mengganti driver.
+5. Buka Settings > DNP Print.
+6. Klik Refresh dan pastikan DS-RX1 terpilih.
+7. Klik Test Print DNP.
+
+Jika test berhasil, aplikasi otomatis mengaktifkan dan menyimpan fitur print.
+Setelah sesi foto selesai, tombol Print Foto akan aktif pada layar hasil.
+
+JIKA TEST GAGAL
+---------------
+- Jalankan kembali 00_INSTALL.bat untuk memastikan PyWin32 terpasang.
+- Kosongkan job yang macet di Windows Print Queue.
+- Matikan dan nyalakan kembali printer.
+- Restart layanan Windows Print Spooler atau restart PC.
+- Periksa data\print_jobs.log untuk detail kedua metode print.

@@ -1,0 +1,25 @@
+Upgrade ke v1.9 - Full Canvas Template Editor
+==============================================
+
+Masalah yang diperbaiki:
+- Overlay portrait atau resolusi besar tidak lagi dipotong oleh editor.
+- Panel properti tidak lagi terlalu sempit atau memotong angka koordinat.
+
+Fitur baru:
+- Workspace editor melebar saat tab Templates dibuka.
+- Fit All untuk melihat seluruh overlay.
+- Fit Width untuk mengisi lebar editor dan scroll secara vertikal.
+- 100% untuk ukuran pixel asli.
+- Zoom minus/plus, slider 1%-200%, dan Ctrl + mouse wheel.
+- Scroll horizontal/vertikal ketika kanvas lebih besar dari viewport.
+- Zoom otomatis diperbarui ketika ukuran jendela berubah.
+
+Cara pakai:
+1. Buka Templates dan pilih template.
+2. Klik Fit All untuk memastikan seluruh overlay terlihat.
+3. Klik Fit Width atau gunakan slider zoom untuk mengedit lebih detail.
+4. Drag/resize slot seperti pada v1.8.
+5. Klik Save setelah posisi slot selesai.
+
+Catatan:
+Zoom hanya memengaruhi tampilan editor, bukan ukuran hasil akhir.

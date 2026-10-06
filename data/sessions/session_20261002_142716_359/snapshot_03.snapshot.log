@@ -1,0 +1,30 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\take_03.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:00:10.07, start: 0.000000, bitrate: 6138 kb/s
+  Stream #0:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6135 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+Stream mapping:
+  Stream #0:0 -> #0:0 (h264 (native) -> mjpeg (native))
+Press [q] to stop, [?] for help
+Output #0, image2, to 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\snapshot_03.jpg':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Stream #0:0(eng): Video: mjpeg, yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], q=2-31, 200 kb/s, 30 fps, 30 tbn (default)
+    Metadata:
+      encoder         : Lavc63.1.101 mjpeg
+      handler_name    : VideoHandler
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/200000 buffer size: 0 vbv_delay: N/A
+[image2 @ 000001796410e5c0] The specified filename 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\snapshot_03.jpg' does not contain an image sequence pattern or a pattern is invalid.
+[image2 @ 000001796410e5c0] Use a pattern such as %03d for an image sequence or use the -update option (with -frames:v 1 if needed) to write a single image.
+[out#0/image2 @ 00000179620e23c0] video:59KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+frame=    1 fps=0.0 q=2.0 Lsize=N/A time=00:00:00.06 bitrate=N/A speed=0.319x elapsed=0:00:00.20    

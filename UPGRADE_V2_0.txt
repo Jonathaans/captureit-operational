@@ -1,0 +1,24 @@
+Upgrade ke v2.0 - Self-Service Kiosk
+=====================================
+
+Fitur baru:
+- UI tamu layar penuh di http://127.0.0.1:5050/kiosk
+- live preview tetap terlihat selama countdown dan setiap sesi foto;
+- progress foto menyesuaikan jumlah take pada template aktif;
+- layar hasil menyediakan Foto Lagi, Simpan Foto, dan Lihat Video;
+- hasil otomatis kembali ke layar awal setelah 25 detik;
+- tombol fullscreen untuk pengoperasian kiosk;
+- panel Capture, Templates, dan Settings tidak terlihat oleh tamu;
+- shortcut operator Ctrl + Shift + A untuk keluar dari kiosk.
+
+Cara menjalankan:
+1. Jalankan 01_START.bat untuk menyalakan aplikasi.
+2. Klik Self Service di panel operator, atau jalankan
+   03_OPEN_SELF_SERVICE.bat.
+3. Aktifkan fullscreen dari tombol di pojok kanan atas bila diperlukan.
+
+Catatan upgrade:
+- Pertahankan folder templates, data, dan settings.json lama jika ingin
+  menggunakan template, hasil, serta pengaturan kamera yang sudah ada.
+- Mode operator tetap tersedia di http://127.0.0.1:5050/
+

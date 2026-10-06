@@ -1,0 +1,37 @@
+Upgrade ke v1.7 - Smarter 30 FPS Capture
+=========================================
+
+Perubahan:
+- Input FPS default = 30.
+- Output template sample = 30 FPS.
+- Setiap output 5 detik berisi 150 frame.
+- Live preview sesi = 20 FPS, sebelumnya 10 FPS.
+- Buffer DirectShow dinaikkan menjadi 1024 MB.
+- Input queue diperbesar untuk mengurangi frame drop.
+- Capture page menampilkan indikator:
+  * FPS kamera efektif
+  * FPS output
+  * FPS live preview
+  * persentase frame duplikat
+
+Cara uji:
+1. Hentikan aplikasi versi lama.
+2. Extract v1.7 ke folder baru dan jalankan 01_START.bat.
+3. Settings: Input FPS = 30, lalu Save Settings.
+4. Templates: pastikan Output FPS = 30.
+5. Jalankan sesi baru dan lihat indikator FPS pada halaman Capture.
+
+Interpretasi indikator:
+- Hijau: FPS kamera efektif minimal sekitar 80% dari target, hasil sehat.
+- Kuning: kamera memasok FPS terlalu rendah atau frame duplikat terlalu banyak.
+
+Jika masih sekitar 9-10 FPS:
+- tambah pencahayaan;
+- gunakan shutter 1/50 atau 1/60 pada kamera;
+- tutup aplikasi lain yang memakai EOS Webcam Utility;
+- jalankan 02_DIAGNOSE_CAMERA.bat untuk melihat mode DirectShow;
+- bila mode 30 FPS tidak didukung, set Input FPS kembali ke 0 (Auto).
+
+Catatan:
+Menaikkan output ke 60 FPS tidak disarankan jika sumber kamera maksimal 30 FPS,
+karena hanya akan menambah frame duplikat dan memperlama proses render.

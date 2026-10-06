@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#21123b">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <title>Capture It Ops</title>
+  <link id="app-favicon" rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/operations.css">
+  <link rel="stylesheet" href="/closing.css">
+  <link rel="stylesheet" href="/reliability.css">
+  <script src="/draft-store.js" defer></script>
+  <script src="/closing-ui.js" defer></script>
+  <script src="/multiday-ui.js" defer></script>
+  <script src="/staffing-ui.js" defer></script>
+  <script src="/push-ui.js" defer></script>
+  <script src="/design-ui.js" defer></script>
+  <script src="/compensation-ui.js" defer></script>
+  <script src="/operations-ui.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div id="login-screen" class="auth-screen">
+    <div class="auth-art">
+      <div class="auth-grid"></div>
+      <div class="auth-orb auth-orb-one"></div>
+      <div class="auth-orb auth-orb-two"></div>
+      <div class="auth-brand-wrap"><img src="/logo.png" alt="Capture It" class="auth-logo"></div>
+      <div class="auth-art-copy">
+        <span class="eyebrow light">OPERATION WORKSPACE</span>
+        <h1>Make every<br><em>moment</em> count.</h1>
+        <p>Jadwal, tim, dan kesiapan event dalam satu ruang kerja.</p>
+      </div>
+      <div class="auth-art-foot"><span class="live-dot"></span> CAPTURE IT · OPERATIONS</div>
+    </div>
+    <section class="auth-panel">
+      <div class="auth-mobile-brand"><img src="/logo.png" alt="Capture It"></div>
+      <div class="auth-form-wrap">
+        <div class="auth-kicker"><span class="kicker-line"></span> WORKSPACE OPERASIONAL</div>
+        <h2>Selamat datang</h2>
+        <p class="muted">Masuk untuk melihat jadwal dan ruang kerja tim.</p>
+        <form id="login-form" class="login-form">
+          <label>Email kerja<input id="login-email" name="email" type="email" autocomplete="username" placeholder="nama@captureit.id" required></label>
+          <label>Password<input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan password" required></label>
+          <div id="login-error" class="form-error" hidden></div>
+          <button class="button button-primary button-wide" type="submit">Masuk ke workspace <span>↗</span></button>
+        </form>
+        <div class="demo-access">
+          <div class="demo-title"><span>DEMO ACCESS</span><span class="demo-line"></span></div>
+          <div class="demo-roles">
+            <button type="button" data-demo-email="coordinator@captureit.local">Coordinator</button>
+            <button type="button" data-demo-email="head.ops@captureit.local">Head Ops</button>
+            <button type="button" data-demo-email="warehouse@captureit.local">Warehouse</button>
+            <button type="button" data-demo-email="finance@captureit.local">Finance</button>
+            <button type="button" data-demo-email="design@captureit.local">Design</button>
+            <button type="button" data-demo-email="crew@captureit.local">Crew</button>
+            <button type="button" data-demo-email="pic@captureit.local">PIC Event</button>
+          </div>
+          <p>Password demo: <code>demo1234</code></p>
+        </div>
+        <div class="auth-foot">Secure workspace · Capture It Photobooth</div>
+      </div>
+    </section>
+  </div>
+
+  <div id="app-shell" class="app-shell" hidden>
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand"><img src="/logo.png" alt="Capture It"></div>
+      <div class="workspace-pill"><span class="workspace-icon">✦</span><span><b>OPS WORKSPACE</b><small>Internal platform</small></span><span class="pill-chevron">⌄</span></div>
+      <div class="nav-scroll">
+        <div id="navigation"></div>
+      </div>
+      <div class="sidebar-bottom">
+        <div class="user-chip">
+          <div id="user-avatar" class="avatar avatar-gold">CI</div>
+          <div class="user-chip-text"><b id="user-name">—</b><small id="user-role">—</small></div>
+        </div>
+        <button id="logout-button" class="logout-button" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M8 12h10" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Keluar workspace</span><span class="logout-arrow" aria-hidden="true">→</span></button>
+        <div class="sidebar-version"><span class="live-dot"></span> All systems operational</div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <button id="mobile-menu" class="icon-button menu-button" aria-label="Buka menu">☰</button>
+        <div class="topbar-title"><span class="topbar-overline">CAPTURE IT / OPERATIONS</span><h1 id="page-title">Dashboard</h1></div>
+        <div class="topbar-tools">
+          <label class="global-search"><span>⌕</span><input id="global-search" placeholder="Cari event atau kode project" autocomplete="off"><kbd>⌘ K</kbd></label>
+          <button id="sync-button" class="button button-light sync-button"><span class="sync-icon">↻</span><span>Sync Calendar</span></button>
+          <div class="notification-wrap">
+            <button id="notification-button" class="icon-button notification-button" type="button" title="Notifikasi" aria-label="Notifikasi" aria-expanded="false" aria-controls="notification-panel" data-action="toggle-notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="notification-count" class="notification-count" hidden></span></button>
+            <section id="notification-panel" class="notification-panel" aria-label="Pusat notifikasi" hidden></section>
+          </div>
+        </div>
+      </header>
+      <section id="page-content" class="page-content"></section>
+    </main>
+  </div>
+
+  <div id="modal-root"></div>
+  <dialog id="push-settings-dialog" class="compensation-dialog push-settings-dialog" aria-labelledby="push-settings-title">
+    <div class="compensation-dialog-head"><h2 id="push-settings-title">Pengaturan notifikasi</h2><button class="button button-light button-small" type="button" data-action="close-push-settings" autofocus>Tutup</button></div>
+    <p id="push-settings-error" class="inline-form-error" role="alert" hidden></p><div id="push-settings-body"></div>
+    <button class="text-link" type="button" data-action="open-push-settings">Muat ulang status</button>
+  </dialog>
+  <dialog id="compensation-dialog" class="compensation-dialog" aria-labelledby="compensation-title">
+    <div class="compensation-dialog-head"><h2 id="compensation-title">Riwayat perubahan</h2><button type="button" class="button button-light button-small" data-action="close-compensation-history" autofocus>Tutup</button></div>
+    <p id="compensation-error" class="inline-form-error" role="alert" hidden></p>
+    <div id="compensation-body"></div>
+    <button type="button" class="text-link" data-action="retry-compensation-history">Muat ulang riwayat</button>
+  </dialog>
+  <dialog id="logout-dialog" class="logout-dialog" aria-labelledby="logout-title" aria-describedby="logout-description">
+    <span class="logout-dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M8 12h10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    <h2 id="logout-title">Keluar dari workspace?</h2><p id="logout-description">Anda dapat masuk kembali kapan saja untuk melanjutkan pekerjaan.</p>
+    <div class="logout-account"><span id="logout-avatar" class="avatar avatar-purple"></span><span><b id="logout-name"></b><small id="logout-email"></small></span></div>
+    <p id="logout-error" class="form-error" role="alert" hidden></p>
+    <div class="logout-dialog-actions"><button id="logout-cancel" class="button button-light" data-action="cancel-logout" autofocus>Tetap di sini</button><button id="logout-confirm" class="button button-primary" data-action="confirm-logout">Ya, keluar</button></div>
+  </dialog>
+  <div id="toast-root" class="toast-root" aria-live="polite"></div>
+</body>
+</html>

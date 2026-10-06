@@ -1,0 +1,24 @@
+RecordCountdown Studio v2.11
+============================
+
+Fitur baru: Live Template Preview pada Self Service.
+
+- Selama sesi, preview kamera ditampilkan ke slot template yang sedang aktif.
+- Setelah setiap countdown selesai, frame pose disimpan sebagai preview slot.
+- Slot yang sudah selesai tetap terlihat saat sesi berikutnya berjalan.
+- Overlay PNG template selalu berada di atas foto, sehingga hasil framing dapat
+  dilihat langsung sebelum proses rendering final selesai.
+- Template portrait/strip diberi border gold yang lebih jelas. Countdown berada
+  di area kosong di samping strip, dan tulisan MEMPROSES tidak lagi menutupi
+  slot foto saat hasil sedang dirender.
+- Tinggi area preview portrait diperbesar. Frame live di-preload sebelum
+  ditampilkan agar pergantian stream tidak menghasilkan flicker/kedip.
+- Foto/video final tetap diproses oleh pipeline FFmpeg/Pillow seperti biasa;
+  preview canvas tidak mengganti sumber final.
+
+Cara memasang:
+1. Tutup RecordCountdown yang sedang berjalan.
+2. Ekstrak isi paket ini ke folder instalasi baru.
+3. Salin `data/settings.json` dan folder `templates` dari instalasi lama jika
+   ingin mempertahankan kamera, printer, QR, dan template custom.
+4. Jalankan `01_START.bat`, lalu buka Self Service.

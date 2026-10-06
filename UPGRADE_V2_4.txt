@@ -1,0 +1,31 @@
+Upgrade ke v2.4 - DNP Full-Bleed + 2x6 Duplex
+==============================================
+
+Masalah yang diperbaiki
+-----------------------
+Hasil DS-RX1 sebelumnya dapat tercetak hanya pada sebagian lembar. Penyebabnya:
+1. PrintDocument memakai PrintableArea dalam 1/100 inch sementara drawing dapat
+   memakai unit Display, sehingga ukuran gambar tidak selalu sama dengan piksel
+   printable area driver.
+2. Mode Contain sengaja mempertahankan seluruh gambar. Output 600x1800 pada
+   media 4x6 akibatnya hanya mengisi setengah lembar dan menyisakan putih.
+
+Perubahan v2.4
+--------------
+- PyWin32 GDI pixel-perfect menjadi jalur cetak utama.
+- PowerShell PrintDocument tetap tersedia sebagai fallback dengan konversi DPI.
+- Auto DNP mendeteksi layout strip berdasarkan aspect ratio.
+- Strip 2x6 otomatis dibuat dua-up pada media 4x6.
+- Full Bleed mengisi seluruh printable area untuk layout biasa.
+- UI menjelaskan bahwa mode Tanpa crop dapat menyisakan bidang putih.
+
+Cara uji DS-RX1
+---------------
+1. Jalankan 00_INSTALL.bat sekali setelah upgrade agar PyWin32 tersedia.
+2. Di Windows DNP Printer Properties pilih media 4x6.
+3. Di Settings > DNP Print pilih DS-RX1.
+4. Pilih Auto DNP lalu klik Test Print DNP.
+5. Lembar uji harus penuh dan berisi dua strip yang sama.
+
+Untuk desain 600x1800 gunakan Auto DNP atau 2x6 Duplex. Untuk desain yang
+memang berukuran 4x6 gunakan Auto DNP atau Full Bleed.

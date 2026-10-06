@@ -1,0 +1,59 @@
+{
+  "canvas": {
+    "height": 1800,
+    "width": 600
+  },
+  "capture": {
+    "betweenTakes": 1,
+    "captureDelay": 0.25,
+    "countdown": 10,
+    "preSessionDelay": 0
+  },
+  "id": "prenagen-single-strip",
+  "name": "Prenagen BA - 1 Strip Video 9:16",
+  "overlay": "overlay.png",
+  "overlayUrl": "/template-assets/prenagen-single-strip/overlay.png",
+  "slots": [
+    {
+      "height": 358,
+      "index": 1,
+      "sourceTake": 1,
+      "width": 504,
+      "x": 48,
+      "y": 204
+    },
+    {
+      "height": 357,
+      "index": 2,
+      "sourceTake": 2,
+      "width": 504,
+      "x": 48,
+      "y": 570
+    },
+    {
+      "height": 358,
+      "index": 3,
+      "sourceTake": 3,
+      "width": 504,
+      "x": 48,
+      "y": 935
+    },
+    {
+      "height": 358,
+      "index": 4,
+      "sourceTake": 4,
+      "width": 504,
+      "x": 48,
+      "y": 1300
+    }
+  ],
+  "takeCount": 4,
+  "video": {
+    "fitMode": "cover",
+    "fps": 30,
+    "loopMode": "repeat",
+    "outputDuration": 10,
+    "outputLayout": "portrait_9_16",
+    "quality": "hd"
+  }
+}

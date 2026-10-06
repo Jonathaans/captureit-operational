@@ -1,0 +1,60 @@
+{
+  "canvas": {
+    "height": 8000,
+    "width": 4500
+  },
+  "capture": {
+    "betweenTakes": 1,
+    "captureDelay": 0.25,
+    "countdown": 5,
+    "preSessionDelay": 0,
+    "snapshotLead": 0.05
+  },
+  "id": "mobile_frame_1080x1920",
+  "name": "MOBILE_FRAME_1080X1920",
+  "overlay": "overlay.png",
+  "overlayUrl": "/template-assets/mobile_frame_1080x1920/overlay.png",
+  "slots": [
+    {
+      "height": 1495,
+      "index": 1,
+      "sourceTake": 1,
+      "width": 2102,
+      "x": 1199,
+      "y": 1099
+    },
+    {
+      "height": 1494,
+      "index": 2,
+      "sourceTake": 2,
+      "width": 2102,
+      "x": 1199,
+      "y": 2621
+    },
+    {
+      "height": 1495,
+      "index": 3,
+      "sourceTake": 3,
+      "width": 2102,
+      "x": 1199,
+      "y": 4142
+    },
+    {
+      "height": 1494,
+      "index": 4,
+      "sourceTake": 4,
+      "width": 2102,
+      "x": 1199,
+      "y": 5664
+    }
+  ],
+  "takeCount": 4,
+  "video": {
+    "fitMode": "cover",
+    "fps": 30,
+    "loopMode": "none",
+    "outputDuration": 5,
+    "quality": "hd",
+    "outputLayout": "template"
+  }
+}

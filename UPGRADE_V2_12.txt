@@ -1,0 +1,17 @@
+UPGRADE KE V2.12
+=================
+
+Perbaikan kamera:
+
+1. Daftar kamera DirectShow dari FFmpeg diparsing lebih aman sehingga nama
+   kamera tidak hilang karena perubahan format output FFmpeg.
+2. Pilihan kamera lama yang sudah tidak tersedia tidak lagi dihitung sebagai
+   perangkat aktif. Klik Refresh di Settings untuk mengambil daftar terbaru.
+3. Preview browser mencoba ulang kamera UVC tanpa batas FPS ketika driver
+   menolak kombinasi constraint pertama.
+4. 02_DIAGNOSE_CAMERA.bat sekarang memberi keterangan bahwa pesan error dari
+   list_options adalah normal dan menyediakan capture test 3 detik.
+
+Catatan: kamera yang dipakai untuk rekaman harus muncul pada Camera device
+DirectShow. Pilihan Preview camera (browser) saja tidak cukup untuk merekam
+melalui FFmpeg.

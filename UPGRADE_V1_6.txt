@@ -1,0 +1,32 @@
+Upgrade ke v1.6 - Camera Rotation Apply Fix
+============================================
+
+Masalah v1.5:
+- Mengubah dropdown Rotation belum tentu tersimpan sebelum Record 3s Test.
+- Pesan "Saved" lama dapat tetap tampil walaupun pilihan baru belum diterapkan.
+- Video hasil Camera Test tidak otomatis diputar, sehingga perubahan rotasi
+  terlihat seolah-olah tidak bekerja.
+
+Perbaikan v1.6:
+- Rotation dan Mirror tersimpan otomatis setiap kali pilihan berubah.
+- Status memperlihatkan nilai aktif dan filter FFmpeg, misalnya:
+  90 derajat  -> transpose=1
+  180 derajat -> hflip,vflip
+  270 derajat -> transpose=2
+- Record 3s Test menyimpan form terbaru lebih dahulu.
+- Camera Test langsung autoplay dan loop.
+- Camera Test, sesi rekaman, live preview sesi, MP4, dan JPG memakai transform
+  backend yang sama.
+
+Cara uji:
+1. Buka Settings.
+2. Pilih Rotation yang diinginkan; tidak perlu menekan Save Settings.
+3. Tunggu status "Camera Transform ... tersimpan otomatis".
+4. Klik Record 3s Test.
+5. Hasil test langsung diputar. Periksa status "Rotation ... diterapkan".
+6. Jika sudah tegak, jalankan sesi foto. Nilai yang sama dipakai pada hasil.
+
+Catatan:
+- Rotation hanya memengaruhi rekaman/test baru, bukan file lama yang sudah ada.
+- Jika browser preview sedang aktif, aplikasi melepas kamera sementara saat
+  Camera Test lalu mengaktifkan preview kembali setelah test selesai.

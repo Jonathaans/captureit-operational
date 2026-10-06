@@ -1,0 +1,57 @@
+.staff-travel-field{display:flex;align-items:center;gap:16px;margin:14px 0;flex-wrap:wrap}
+.staff-travel-field label{font-size:12px;font-weight:700;display:grid;gap:6px}
+.staff-travel-field input{max-width:140px}
+.staff-travel-field p{flex:1;min-width:180px;margin:0;color:var(--text-muted,#777);font-size:12px;line-height:1.6}
+.staff-availability{border:1px solid #e3deeb;border-radius:12px;background:#faf8fc;padding:14px;margin:14px 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.staff-availability>b{font-size:13px}.staff-availability p{margin:6px 0}.staff-availability ul{list-style:none;padding:0;margin:10px 0}
+.staff-availability li{display:grid;gap:2px;border-top:1px solid #00000010;padding:9px 0}.staff-availability h4{margin:10px 0 0}
+.staff-availability.is-blocked{border-color:#f0c0c5;background:#fff4f5;color:#85313e}
+.staff-availability.is-warning{border-color:#ecd49d;background:#fffbef;color:#78541a}
+.staff-availability.is-ready{border-color:#bfdecf;background:#f4fbf7;color:#276549}
+.assignment-schedule-note{font-size:12px;color:#70697c;line-height:1.6}
+.rate-history-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.rate-account-form{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rate-account-form>.field-label:first-child,.rate-account-form>.field-label:nth-child(4),.rate-account-form>button{grid-column:1/-1}
+.rate-account-form>button{justify-self:start}
+.salary-change-controls{display:grid;grid-template-columns:minmax(140px,180px) minmax(180px,1fr) auto;gap:12px;align-items:end;padding:18px}
+.salary-change-controls p{grid-column:1/-1;font-size:12px;color:#70697c;line-height:1.6;margin:0}
+.compensation-dialog{box-sizing:border-box;width:min(740px,calc(100vw - 28px));max-height:88vh;overflow:auto;border:0;border-radius:18px;padding:24px;color:#30283c;background:#fff;box-shadow:0 25px 90px #1b112d44}
+.compensation-dialog::backdrop{background:#17102080}
+.compensation-dialog-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}.compensation-dialog-head h2{font-size:20px;margin:0}
+.compensation-summary{padding:18px;border-radius:12px;background:#f4f0fa}.compensation-summary b,.compensation-summary small{display:block}.compensation-summary b{font-size:23px;margin:5px 0}.compensation-summary span{font-size:12px;font-weight:400}
+.compensation-note{font-size:12px;color:#746b81;line-height:1.6}.compensation-timeline{display:grid;gap:12px;margin:18px 0}
+.compensation-entry{border:1px solid #e6dfed;border-radius:12px;padding:16px;overflow-wrap:anywhere}.compensation-entry-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px}
+.compensation-amount{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px;font-size:14px}.compensation-amount>span:first-child{color:#80758e}.compensation-amount strong{font-size:18px}.compensation-amount small{background:#f3eef9;padding:4px 7px;border-radius:6px}
+.compensation-entry p{font-size:13px;line-height:1.5;margin:12px 0 7px;white-space:pre-wrap}.compensation-entry>small{color:#80758e;font-size:11px}
+@media(max-width:680px){.salary-change-controls,.rate-account-form{grid-template-columns:1fr}.salary-change-controls p{grid-column:1}.compensation-dialog{padding:16px}.compensation-dialog-head h2{font-size:17px}.rate-history-actions{justify-content:flex-start}.rate-account-row .rate-history-actions{grid-column:1/-1;grid-row:3}}
+.staff-travel-ack{display:flex;gap:9px;align-items:flex-start;font-weight:600;margin-top:12px}.staff-travel-ack input{margin-top:4px;accent-color:#694397}
+.draft-status{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1.5;margin:14px 0;padding:11px 13px;border-radius:10px;background:#f4f0fa;color:#584471}
+.draft-status:before{content:'';width:7px;height:7px;flex:0 0 7px;background:currentColor;border-radius:50%}
+.draft-status.is-error{background:#fff2e4;color:#915311}
+.draft-recovery{padding:16px;margin:14px 0;border:1px solid #edcf92;border-radius:12px;background:#fffbef;font-size:12px;line-height:1.6}
+.draft-recovery p{margin:7px 0}.draft-recovery-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.draft-recovery pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;max-height:260px;overflow:auto;border-top:1px solid #ecd49d;padding-top:10px}
+@media(max-width:600px){.staff-travel-field{align-items:flex-start;gap:10px}.draft-recovery-actions .button{flex:1;min-width:140px}}
+/* Notification preferences and design brief forms */
+.push-settings-dialog{max-width:620px}
+.push-intro p,.push-help{font-size:12px;line-height:1.6;color:var(--muted,#7c748a)}
+.push-device-card,.design-brief-card{padding:18px;border:1px solid #e7e1ef;border-radius:16px;background:#fcfbff;margin:16px 0}
+.push-device-card h3,.push-settings-dialog h3,.design-brief-card h3{font-size:15px;margin:0 0 12px;color:#2c2140}
+.push-device-card p{font-size:13px;line-height:1.5;margin:8px 0}
+.push-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.push-category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.push-category-grid label{display:flex;align-items:center;gap:10px;border:1px solid #e7e1ef;padding:12px;border-radius:12px;font-size:13px}
+.push-category-grid input{width:18px;height:18px;accent-color:var(--purple,#7353e8)}
+.push-time-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.push-device-list{margin-top:24px}
+.push-device-list>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eee8f3}
+.push-device-list small{display:block;color:#7c748a;margin-top:4px}
+.notification-older{display:block;margin:10px auto}
+.design-brief-card form{display:grid;gap:14px}
+.design-brief-card textarea{resize:vertical;min-height:90px;line-height:1.6}
+.design-brief-card form button{justify-self:start}
+.design-brief-text,.design-note p{white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.65}
+.design-note{padding:12px 0;border-bottom:1px solid #eee8f3}
+.design-note p{margin:0 0 5px}.design-note small{color:#7c748a}
+[data-payslip-id]{scroll-margin-top:24px}
+@media(max-width:540px){.push-category-grid,.push-time-grid{grid-template-columns:1fr}.push-settings-dialog{width:calc(100vw - 24px);padding:18px}.push-actions .button{flex:1}.design-brief-card{padding:14px}.push-device-list>div{align-items:flex-start}}

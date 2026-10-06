@@ -1,0 +1,27 @@
+Upgrade ke v2.7 - Preview dan hasil memiliki orientasi sama
+=========================================================
+
+Setelan untuk perangkat pada contoh pengguna:
+1. Rotation correction: 0 derajat.
+2. Koreksi sumber FFmpeg: 180 derajat (EOS Webcam Utility).
+3. Mirror Horizontal dan Mirror Vertical: OFF.
+
+Pada v2.6, setting Rotation 0 derajat membuat preview awal tegak, namun
+gambar berubah terbalik saat Start karena feed DirectShow/FFmpeg dari setup
+tersebut berbeda 180 derajat dengan feed browser. V2.7 memisahkan koreksi
+sumber FFmpeg dari rotasi tampilan; koreksi yang sama juga dipakai saat membuat
+video per sesi, snapshot, JPG, MP4 final, dan Camera Test.
+
+Langkah pemasangan:
+- Tutup aplikasi versi lama dan ekstrak paket ini ke folder baru.
+- Untuk mempertahankan template, pengaturan printer, dan folder sinkronisasi,
+  salin folder templates serta file settings.json dari aplikasi lama ke folder
+  aplikasi baru. Jika menyalin settings.json lama, set Rotation correction
+  ke 0 derajat di Settings; EOS Webcam Utility akan otomatis menampilkan
+  Koreksi sumber FFmpeg 180 derajat jika field baru belum ada.
+- Jalankan 00_INSTALL.bat dan 01_START.bat, lalu Refresh di browser.
+- Pastikan preview sebelum sesi tegak, jalankan Record 3s Test, kemudian coba
+  sesi self service. Video dan foto harus mengikuti orientasi preview awal.
+
+Kamera hanya dapat diuji langsung pada komputer yang terhubung ke EOS Webcam
+Utility. Jika sumber kamera berubah, ubah Koreksi sumber FFmpeg di Settings.

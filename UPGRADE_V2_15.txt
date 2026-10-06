@@ -1,0 +1,26 @@
+RECORDCOUNTDOWN STUDIO v2.15
+============================
+
+1. Preview self-service tidak hitam lagi
+   - Penyebab: pada mode Browser, frame foto diambil dari elemen <video>, tetapi
+     kodenya memeriksa properti gambar (.complete) sehingga selalu gagal dan slot
+     foto tetap hitam.
+   - Sekarang frame diambil dari sumber yang valid (video/gambar), disalin ke canvas,
+     dan ada snapshot cadangan yang disimpan selama hitungan mundur. Jika fase
+     "capture" yang singkat terlewat, snapshot terakhir dipakai.
+   - Server juga mengecek foto hasil: jika frame hitam, otomatis mundur ke frame
+     terang sebelumnya.
+
+2. Kamera lebih fleksibel (EOS Webcam Utility di semua perangkat)
+   - Nama kamera DirectShow dicocokkan otomatis di tiap PC (EOS Webcam Utility /
+     Pro / (2)), lalu kamera nyata pertama jika tidak ada.
+   - FFmpeg mencoba beberapa opsi bertahap (resolusi/FPS/buffer) sampai driver
+     menerima, tidak lagi gagal karena kombinasi 1920x1080@30 ditolak.
+   - Mode Auto memakai FFmpeg hanya jika kamera terkonfigurasi benar-benar ada di
+     PC itu; jika tidak, otomatis memakai kamera Browser.
+   - Preview browser mencoba 1080p -> 720p -> tanpa batas -> kamera default, menunggu
+     frame pertama, dan menyambung ulang jika kamera terputus.
+
+Tips PC lain: install EOS Webcam Utility, tutup EOS Utility/Zoom/OBS, pastikan
+ffmpeg ada di PATH, lalu Settings > Refresh. Jika masih gagal, pilih Sumber sesi
+= Browser MediaRecorder.

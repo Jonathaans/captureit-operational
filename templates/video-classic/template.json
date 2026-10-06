@@ -1,0 +1,73 @@
+{
+  "id": "video-classic",
+  "name": "VIDEO Classic - 3 Take Duplex",
+  "overlay": "overlay.png",
+  "canvas": {
+    "width": 1200,
+    "height": 1800
+  },
+  "capture": {
+    "preSessionDelay": 0.0,
+    "countdown": 5.0,
+    "betweenTakes": 1.0,
+    "captureDelay": 0.25,
+    "snapshotLead": 0.05
+  },
+  "video": {
+    "fps": 30,
+    "outputDuration": 5.0,
+    "fitMode": "cover",
+    "loopMode": "none",
+    "quality": "hd"
+  },
+  "slots": [
+    {
+      "index": 1,
+      "x": 30,
+      "y": 41,
+      "width": 539,
+      "height": 542,
+      "sourceTake": 1
+    },
+    {
+      "index": 2,
+      "x": 630,
+      "y": 41,
+      "width": 539,
+      "height": 542,
+      "sourceTake": 1
+    },
+    {
+      "index": 3,
+      "x": 30,
+      "y": 620,
+      "width": 539,
+      "height": 543,
+      "sourceTake": 2
+    },
+    {
+      "index": 4,
+      "x": 630,
+      "y": 620,
+      "width": 539,
+      "height": 543,
+      "sourceTake": 2
+    },
+    {
+      "index": 5,
+      "x": 30,
+      "y": 1201,
+      "width": 539,
+      "height": 542,
+      "sourceTake": 3
+    },
+    {
+      "index": 6,
+      "x": 630,
+      "y": 1201,
+      "width": 539,
+      "height": 542,
+      "sourceTake": 3
+    }
+  ]
+}

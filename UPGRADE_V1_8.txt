@@ -1,0 +1,21 @@
+Upgrade ke v1.8 - Template Slot Adjuster
+=========================================
+
+Perubahan:
+- Slot pada Template Editor bisa dipindahkan dengan drag.
+- Delapan handle kuning dapat dipakai untuk resize dari sisi atau sudut.
+- X, Y, Width, dan Height dapat diisi langsung untuk pengaturan presisi.
+- Tombol panah menggeser slot 1 pixel.
+- Shift + tombol panah menggeser slot 10 pixel.
+- Tersedia Center X dan Center Y.
+- Posisi dan ukuran otomatis dibatasi agar tidak keluar dari kanvas.
+- Status editor menunjukkan bila perubahan belum disimpan.
+
+Cara pakai:
+1. Buka Templates dan pilih template.
+2. Klik salah satu kotak slot pada overlay.
+3. Drag kotak untuk memindahkan, atau tarik handle kuning untuk resize.
+4. Untuk presisi, isi nilai X, Y, Width, dan Height.
+5. Klik Save.
+
+Koordinat hasil editor langsung dipakai oleh render final MP4 dan JPG.

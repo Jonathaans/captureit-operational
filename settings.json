@@ -1,0 +1,46 @@
+{
+  "cameraBackendRotationOffset": 180,
+  "cameraBrowserLabel": "Browser camera",
+  "cameraDevice": "",
+  "cameraInputFps": 30,
+  "cameraResolution": "",
+  "cameraSource": "auto",
+  "cameraTransform": {
+    "rotation": 0,
+    "mirrorHorizontal": false,
+    "mirrorVertical": false
+  },
+  "cameraWarmupSeconds": 3,
+  "desktopSync": {
+    "enabled": false,
+    "photoFolder": "",
+    "videoFolder": "",
+    "syncVideos": true
+  },
+  "ffmpegPath": "ffmpeg",
+  "hotFolder": {
+    "enabled": false,
+    "path": ""
+  },
+  "kiosk": {
+    "resultTimeoutSeconds": 60
+  },
+  "printer": {
+    "enabled": true,
+    "name": "DS-RX1",
+    "copies": 1,
+    "fitMode": "strip2up",
+    "modeVersion": 4
+  },
+  "qr": {
+    "enabled": true,
+    "mode": "output",
+    "publicBaseUrl": "",
+    "fixedUrl": "",
+    "label": "Scan untuk mengambil foto"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5050
+  }
+}

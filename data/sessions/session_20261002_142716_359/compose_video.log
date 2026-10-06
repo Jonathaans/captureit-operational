@@ -1,0 +1,108 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\take_01.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:00:10.07, start: 0.000000, bitrate: 6070 kb/s
+  Stream #0:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6066 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+Input #1, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\take_02.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:00:10.07, start: 0.000000, bitrate: 6067 kb/s
+  Stream #1:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6063 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+Input #2, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\take_03.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:00:10.07, start: 0.000000, bitrate: 6138 kb/s
+  Stream #2:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6135 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+Input #3, mov,mp4,m4a,3gp,3g2,mj2, from 'C:\Users\Administrator\Documents\captureit-ops\data\sessions\session_20261002_142716_359\take_04.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:00:10.07, start: 0.000000, bitrate: 6083 kb/s
+  Stream #3:0[0x1](eng): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt709/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 6080 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+Input #4, png_pipe, from 'C:\Users\Administrator\Documents\captureit-ops\templates\prenagen-single-strip\overlay.png':
+  Duration: N/A, bitrate: N/A
+  Stream #4:0: Video: png, rgba(pc, gbr/unknown/unknown), 600x1800 [SAR 11811:11811 DAR 1:3], 30 fps, 30 tbr, 30 tbn
+Stream mapping:
+  Stream #0:0 (h264) -> setpts:default
+  Stream #1:0 (h264) -> setpts:default
+  Stream #2:0 (h264) -> setpts:default
+  Stream #3:0 (h264) -> setpts:default
+  Stream #4:0 (png) -> scale:default
+  setsar:default -> Stream #0:0 (libx264)
+Press [q] to stop, [?] for help
+[swscaler @ 0000021c27ba5280] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0000021c226b5bc0] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0000021c2d5c8d40] deprecated pixel format used, make sure you did set range correctly
+[swscaler @ 0000021c3001a680] deprecated pixel format used, make sure you did set range correctly
+[libx264 @ 0000021c1e36c300] using SAR=1/1
+[libx264 @ 0000021c1e36c300] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0000021c1e36c300] profile High, level 4.2, 4:2:0, 8-bit
+[libx264 @ 0000021c1e36c300] 264 - core 165 r3223 0480cb0 - H.264/MPEG-4 AVC codec - Copyleft 2003-2025 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=18 lookahead_threads=3 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=17.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'C:\Users\Administrator\Documents\captureit-ops\data\outputs\videos\recordcountdown_20261002_142716_359.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(pc, bt709/unknown/unknown, progressive), 1080x1920 [SAR 1:1 DAR 9:16], q=2-31, 30 fps, 15360 tbn
+    Metadata:
+      encoder         : Lavc63.1.101 libx264
+    Side data:
+      CPB properties: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=    0 fps=0.0 q=0.0 size=       0KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:00.51    
+frame=    0 fps=0.0 q=0.0 size=       0KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:01.02    
+frame=   11 fps=7.1 q=23.0 size=     256KiB time=00:00:00.30 bitrate=6991.8kbits/s speed=0.194x elapsed=0:00:01.54    
+frame=   36 fps= 18 q=23.0 size=     512KiB time=00:00:01.13 bitrate=3701.2kbits/s speed=0.552x elapsed=0:00:02.05    
+frame=   58 fps= 23 q=23.0 size=     768KiB time=00:00:01.86 bitrate=3370.6kbits/s speed=0.727x elapsed=0:00:02.56    
+frame=   82 fps= 27 q=23.0 size=    1280KiB time=00:00:02.66 bitrate=3932.3kbits/s speed=0.864x elapsed=0:00:03.08    
+frame=  104 fps= 29 q=23.0 size=    1536KiB time=00:00:03.40 bitrate=3701.0kbits/s speed=0.944x elapsed=0:00:03.60    
+frame=  129 fps= 31 q=23.0 size=    2048KiB time=00:00:04.23 bitrate=3963.2kbits/s speed=1.02x elapsed=0:00:04.14    
+frame=  155 fps= 33 q=23.0 size=    2304KiB time=00:00:05.06 bitrate=3725.3kbits/s speed=1.08x elapsed=0:00:04.68    
+frame=  178 fps= 34 q=23.0 size=    2816KiB time=00:00:05.86 bitrate=3932.2kbits/s speed=1.13x elapsed=0:00:05.21    
+frame=  201 fps= 35 q=23.0 size=    3072KiB time=00:00:06.63 bitrate=3793.9kbits/s speed=1.16x elapsed=0:00:05.72    
+frame=  225 fps= 36 q=23.0 size=    3328KiB time=00:00:07.43 bitrate=3667.7kbits/s speed=1.19x elapsed=0:00:06.24    
+frame=  260 fps= 38 q=23.0 size=    4096KiB time=00:00:08.60 bitrate=3901.7kbits/s speed=1.27x elapsed=0:00:06.76    
+[mp4 @ 0000021c20490700] Starting second pass: moving the moov atom to the beginning of the file
+[out#0/mp4 @ 0000021c1e336d40] video:4842KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: 0.091574%
+frame=  300 fps= 42 q=-1.0 Lsize=    4846KiB time=00:00:09.93 bitrate=3996.5kbits/s speed= 1.4x elapsed=0:00:07.08    
+[libx264 @ 0000021c1e36c300] frame I:2     Avg QP: 9.17  size:188227
+[libx264 @ 0000021c1e36c300] frame P:76    Avg QP:17.64  size: 33426
+[libx264 @ 0000021c1e36c300] frame B:222   Avg QP:19.15  size:  9190
+[libx264 @ 0000021c1e36c300] consecutive B-frames:  1.3%  0.0%  0.0% 98.7%
+[libx264 @ 0000021c1e36c300] mb I  I16..4: 46.8% 30.4% 22.8%
+[libx264 @ 0000021c1e36c300] mb P  I16..4:  0.1%  4.2%  0.3%  P16..4: 11.3%  8.5%  4.4%  0.0%  0.0%    skip:71.1%
+[libx264 @ 0000021c1e36c300] mb B  I16..4:  0.0%  0.9%  0.0%  B16..8:  7.6%  2.2%  0.6%  direct: 1.7%  skip:87.0%  L0:47.7% L1:40.4% BI:12.0%
+[libx264 @ 0000021c1e36c300] 8x8 transform intra:76.2% inter:64.6%
+[libx264 @ 0000021c1e36c300] coded y,uvDC,uvAC intra: 82.6% 88.1% 83.5% inter: 8.9% 11.3% 4.9%
+[libx264 @ 0000021c1e36c300] i16 v,h,dc,p: 88%  3%  1%  8%
+[libx264 @ 0000021c1e36c300] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 12% 14% 24%  7%  9%  6% 10%  7% 12%
+[libx264 @ 0000021c1e36c300] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 26% 22%  8%  6%  9%  7%  9%  6%  7%
+[libx264 @ 0000021c1e36c300] i8c dc,h,v,p: 63% 17% 14%  7%
+[libx264 @ 0000021c1e36c300] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0000021c1e36c300] ref P L0: 41.8%  9.8% 32.5% 15.9%
+[libx264 @ 0000021c1e36c300] ref B L0: 69.4% 20.2% 10.4%
+[libx264 @ 0000021c1e36c300] ref B L1: 97.3%  2.7%
+[libx264 @ 0000021c1e36c300] kb/s:3965.65

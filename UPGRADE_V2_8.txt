@@ -1,0 +1,22 @@
+Upgrade ke v2.8 - Tampilan Capture It Self Service
+=================================================
+
+Yang berubah:
+- Logo Capture It Photobooth dipakai pada header Self Service.
+- Warna diambil dari logo: hitam, emas (#bf9b30), putih.
+- Tampilan preview, countdown, progres per sesi, status kamera, tombol besar,
+  panel hasil, QR, dan cetak diperbarui untuk layar sentuh.
+- Pada layar sempit, panel hasil ditampilkan lebih dulu agar QR dan tombol
+  Cetak Foto langsung terlihat setelah pemotretan.
+
+Pemasangan:
+1. Tutup aplikasi versi sebelumnya.
+2. Ekstrak ZIP v2.8 ke folder baru.
+3. Salin folder templates, file settings.json, dan data/custom_qr.png dari
+   aplikasi lama ke folder baru bila ingin mempertahankan semuanya.
+4. Jalankan 00_INSTALL.bat dan 01_START.bat; buka 03_OPEN_SELF_SERVICE.bat.
+   Refresh browser dengan Ctrl + F5 bila halaman lama masih muncul.
+
+Catatan: uji kamera, orientasi, QR, dan cetak DNP pada komputer booth.
+Pembaruan ini mengubah antarmuka Self Service, tanpa mengubah driver printer
+atau mekanisme tangkap foto/video dari v2.7.

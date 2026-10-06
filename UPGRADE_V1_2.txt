@@ -1,0 +1,39 @@
+RecordCountdown Studio v1.2 - Camera Transform
+=================================================
+
+PERUBAHAN
+---------
+v1.2 menambahkan Camera Transform global:
+- Rotation 0°
+- Rotation 90°
+- Rotation 180°
+- Rotation 270°
+- Mirror Horizontal
+- Mirror Vertical
+
+Transform diterapkan di CAMERA SOURCE sebelum Take 1/2/3 dibuat.
+Akibatnya:
+- MP4 final benar orientasinya
+- JPG snapshot benar orientasinya
+- semua template otomatis memakai orientasi yang sama
+- overlay/template tidak perlu diputar
+
+SETTING UNTUK HASIL USER INI
+-----------------------------
+Settings > Camera Transform
+
+Rotation           = 180°
+Mirror Horizontal  = OFF
+Mirror Vertical    = OFF
+
+Lalu:
+1. Save Settings
+2. Record 3s Test
+3. Pastikan wajah sudah tegak
+4. Jalankan Capture Session
+
+SYNC START v1.1 TETAP DIPERTAHANKAN
+-----------------------------------
+Kamera hanya dibuka satu kali sepanjang session.
+Take 1/2/3 dipotong dari satu continuous stream dan semuanya di-reset
+ke timestamp 00:00 saat compose final.

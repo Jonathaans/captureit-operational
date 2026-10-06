@@ -1,0 +1,17 @@
+services:
+  captureit-ops:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8000
+      OPS_DB_PATH: /data/ops.sqlite3
+    ports:
+      - "127.0.0.1:${PUBLIC_PORT:-8000}:8000"
+    volumes:
+      - ops-data:/data
+
+volumes:
+  ops-data:

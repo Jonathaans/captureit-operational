@@ -1,0 +1,25 @@
+RECORDCOUNTDOWN STUDIO v2.14
+============================
+
+Revisi client: hasil scan tetap photostrip 600x1800, hasil video menjadi
+format 9:16, dan hasil print hanya satu strip.
+
+Yang berubah:
+- Template baru: Prenagen BA - 1 Strip Video 9:16.
+- JPG digital dari sesi tetap 600x1800 tanpa bidang hitam.
+- MP4 template baru otomatis 1080x1920 dengan strip di tengah dan sisi hitam.
+- Printer Foto memiliki Layout cetak baru: 1 strip di kiri.
+- Mode 1 strip mencetak foto di separuh kiri media 4x6 dan separuh kanan putih.
+- Tombol Preview Layout ditambahkan di Settings untuk mengecek posisi halaman 4x6.
+
+Setting yang disarankan untuk DNP DS-RX1:
+1. Windows Printing Preferences: Paper Size (6x4).
+2. Printer Features: 2inch cut = Enable.
+3. RecordCountdown Settings > Printer Foto > Layout cetak: 1 strip di kiri.
+4. Klik Preview Layout. Strip harus terlihat di sisi kiri, sisi kanan putih.
+5. Klik Test Print DNP sebelum event.
+
+Catatan:
+- Mode Full 4R dipakai jika 2inch cut dimatikan.
+- Mode 2 strip tetap tersedia jika suatu event membutuhkan dua strip di satu 4x6.
+- QR custom dan folder Google Drive auto-sync dari versi sebelumnya tetap dipakai.

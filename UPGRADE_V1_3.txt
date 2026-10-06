@@ -1,0 +1,21 @@
+Upgrade ke v1.3
+=================
+Fokus versi ini:
+- memperjelas logic session
+- menambahkan live preview
+- menghapus delay dobel sebelum take pertama
+
+Workflow yang diinginkan:
+Warmup 3s -> Take 1 countdown 5s -> image = frame akhir
+-> jeda -> Take 2 -> image = frame akhir
+-> jeda -> Take 3 -> image = frame akhir
+
+Langkah:
+1. Extract v1.3
+2. Jalankan 01_START.bat
+3. Settings:
+   - Rotation = 180 (bila masih diperlukan pada setup Anda)
+   - Warmup = 3
+4. Capture:
+   - Start Preview untuk framing
+   - Start Session untuk proses booth
