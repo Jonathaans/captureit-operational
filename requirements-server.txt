@@ -1,0 +1,2 @@
+# Production HTTP transport; local `python3 server.py` remains dependency-free.
+waitress==3.0.2
