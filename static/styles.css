@@ -783,3 +783,12 @@ a:hover { text-decoration: underline; }
 .manual-event-form .field-label small { color: #776c8a; font-weight: 400; }
 .manual-event-check { display: flex; align-items: center; gap: 8px; align-self: end; }
 .manual-event-form .inline-form-error, .manual-event-form .muted, .manual-event-actions { grid-column: 1 / -1; }
+
+/* In-house punctuality */
+.punctuality-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.punctuality-row:empty { display: none; }
+
+/* Kode CRM queue */
+.crm-queue-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: #fff7df; border: 1px solid #f0d58a; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+.queue-panel-tools .table-search { min-width: 220px; }
+.calendar-code-row[hidden] { display: none; }

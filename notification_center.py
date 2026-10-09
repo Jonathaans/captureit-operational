@@ -79,7 +79,7 @@ def allowed(conn, user, row, live_keys=None):
         return user.get('employment_type') == 'freelancer' and bool(conn.execute('''SELECT 1 FROM payroll_batch_transfers t
             JOIN payroll_lines l ON l.batch_id=t.batch_id JOIN event_assignments a ON a.id=l.assignment_id
             WHERE t.batch_id=? AND a.user_id=?''', (row['target_id'], user['id'])).fetchone())
-    if row['kind'] in {'sync_failed', 'sync_recovered'}:
+    if row['kind'] in {'sync_failed', 'sync_recovered', 'inhouse_late', 'inhouse_early'}:
         return True   # system notice for people who may run Calendar sync; the permission check above already applied
     if row['kind'] == 'assignment_removed':
         return bool(p & {'events.read_own', 'events.read_all'})
@@ -251,3 +251,18 @@ def sync_status(conn, ok, message, previous_status):
                     title='Sinkronisasi Google Calendar pulih', target_kind='inbox', permission='google.sync',
                     body='Sinkronisasi terakhir berhasil. Event Calendar sudah diperbarui.')
     return []
+
+
+def inhouse_punctuality(conn, recipients, employee, record_id, action, minutes, scheduled, actual, work_date):
+    """Tell people who oversee In-house attendance that someone arrived late or left early.
+
+    `recipients` are already filtered by the caller (active users who hold attendance.inhouse.read_all).
+    """
+    if not recipients:
+        return []
+    late = action == 'check_in'
+    return emit(conn, recipients, key=f"inhouse_{'late' if late else 'early'}:{record_id}", category='operations',
+                kind='inhouse_late' if late else 'inhouse_early', target_kind='inbox', permission='attendance.inhouse.read_all',
+                title=f"{employee['full_name']} {'terlambat check-in' if late else 'pulang lebih awal'}",
+                body=(f"{employee['full_name']} check-in {actual} WIB, jadwal masuk {scheduled} (terlambat {minutes} menit) pada {work_date}." if late else
+                      f"{employee['full_name']} check-out {actual} WIB, jadwal pulang {scheduled} (lebih awal {minutes} menit) pada {work_date}."))

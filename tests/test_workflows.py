@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import unittest.mock
 import urllib.error
 import urllib.request
 import zipfile
@@ -590,6 +591,11 @@ class WorkflowTests(unittest.TestCase):
 
     def test_attendance_group_and_assignment(self):
         event_id = self.event_id("CI-OPS-26001")
+        # Crew may only check in on the event date, so pretend today is that date.
+        with ops.get_db() as conn:
+            event_day = ops.eventdays.event_dates(conn.execute("SELECT starts_at,ends_at FROM events WHERE id=?", (event_id,)).fetchone())[0]
+        patcher = unittest.mock.patch.object(ops.eventdays, "today_wib", lambda: event_day)
+        patcher.start(); self.addCleanup(patcher.stop)
         crew = self.client("crew@captureit.local")
         detail = self.event(crew, event_id)
         own = next(row for row in detail["assignments"] if row["user_id"] == json.loads(crew.request("/api/me")[2])["user"]["id"])

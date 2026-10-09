@@ -28,9 +28,10 @@ function renderAssignmentDays(d, a) {
   const rows = a.days.map((day) => {
     const [label, tone] = DAY_STATUS[day.status] || DAY_STATUS.not_started;
     let action = '';
-    if (own && day.work_date === today) {
+    const yesterday = new Date(Date.parse(today) - 86400000).toISOString().slice(0, 10);
+    if (own && (day.work_date === today || day.work_date === yesterday)) {
       const common = `data-action="attendance" data-id="${d.id}" data-assignment-id="${a.assignment_id}" data-work-date="${day.work_date}"`;
-      if (day.status === 'not_started') action = `<button class="button button-primary button-small" ${common} data-attendance-action="check_in">Check-in</button>`;
+      if (day.status === 'not_started' && day.work_date === today) action = `<button class="button button-primary button-small" ${common} data-attendance-action="check_in">Check-in</button>`;
       if (day.status === 'checked_in') action = `<button class="button button-gold button-small" ${common} data-attendance-action="check_out">Check-out</button>`;
     }
     if (manage && day.status === 'not_started') {

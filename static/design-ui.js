@@ -10,13 +10,14 @@ function approvedDesignLink(d) {
 }
 function renderDesignForms(d) {
   const task=d.design_task||(state.data.design_tasks||[]).find(t=>t.event_id===d.id);
-  if(!task)return '<p class="push-help">Tugas desain belum tersedia.</p>';
-  const editor=has('design.update')||(has('events.assign')&&(d.coordinator_id===state.data.user.id||state.data.user.roles.some(r=>['administrator','head_operations'].includes(r.code))));
+  if(!task)return d.design_restricted?'<p class="push-help">Tugas desain event ini ditangani designer lain.</p>':'<p class="push-help">Tugas desain belum tersedia.</p>';
+  // Only Head Design / Admin / Head Ops / the responsible Coordinator brief and pick the designer; Team Design just works the card.
+  const editor=has('design.assign')&&(has('design.update')||(has('events.assign')&&(d.coordinator_id===state.data.user.id||state.data.user.roles.some(r=>['administrator','head_operations'].includes(r.code)))));
   const editable=editor&&d.status==='scheduled';
   const notes=(d.design_notes||[]).map(n=>`<div class="design-note"><p>${escapeHtml(n.body)}</p><small>${escapeHtml(n.author_name||'Pengguna')} · ${escapeHtml(attendanceTimeLabel(n.created_at))}</small></div>`).join('');
-  const brief=`<section class="design-brief-card"><h3>Brief desain</h3><p class="push-help">${task.brief_sent_at?`Terkirim · versi ${Number(task.brief_version)} · ${escapeHtml(attendanceTimeLabel(task.brief_sent_at))}`:'Isi kebutuhan desain, kemudian kirim ke designer.'}</p>
+  const brief=`<section class="design-brief-card"><h3>Brief desain</h3><p class="push-help">${task.brief_sent_at?`Terkirim · versi ${Number(task.brief_version)} · ${escapeHtml(attendanceTimeLabel(task.brief_sent_at))}`:'Isi kebutuhan desain, pilih designer, lalu kirim. Designer hanya melihat kartu yang ditugaskan kepadanya.'}</p>
     ${editable?`<form id="design-brief-form" data-task-id="${task.id}" data-version="${Number(task.brief_version||0)}"><label class="field-label">Kebutuhan desain<textarea class="field-input" name="brief_text" rows="6" maxlength="10000" required placeholder="Tema, teks, ukuran, referensi, serta tautan bahan…">${escapeHtml(task.brief_text||'')}</textarea></label>
-    <label class="field-label">Designer<select class="field-input" name="assignee_id"><option value="">Antrean tim desain</option>${(state.data.designers||[]).map(u=>`<option value="${u.id}" ${u.id===task.assignee_id?'selected':''}>${escapeHtml(u.full_name)}</option>`).join('')}</select></label>
+    <label class="field-label">Designer<select class="field-input" name="assignee_id"><option value="">Belum dipilih (hanya Head Design yang melihat)</option>${(state.data.designers||[]).map(u=>`<option value="${u.id}" ${u.id===task.assignee_id?'selected':''}>${escapeHtml(u.full_name)}</option>`).join('')}</select></label>
     <label class="field-label">Tenggat · WIB (opsional)<input class="field-input" type="datetime-local" name="due_at" value="${escapeHtml(designLocalInput(task.due_at))}"></label><p class="inline-form-error" role="alert" hidden></p>
     <button class="button button-primary" type="submit">${task.brief_sent_at?'Kirim pembaruan brief':'Kirim brief'}</button><small class="push-help">Notifikasi dikirim setelah brief tersimpan. Pengiriman isi yang sama tidak mengirim ulang.</small></form>`:
     `<p class="design-brief-text">${escapeHtml(task.brief_text||'Belum ada brief yang dikirim.')}</p>`}</section>`;
@@ -41,3 +42,8 @@ document.addEventListener('submit',async event=>{
   }catch(exc){if(state.data?.user.id===uid){error.textContent=exc.message;error.hidden=false;}}
   finally{delete form.dataset.busy;button.disabled=false;}
 });
+
+/* Team Design only sees the cards assigned to them; everyone else with design access sees every card. */
+function canSeeDesignStatus(event) {
+  return has('design.read') && (has('design.read_all') || event.design_assignee_id === state.data.user.id);
+}

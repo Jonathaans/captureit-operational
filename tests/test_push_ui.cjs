@@ -39,7 +39,7 @@ test('device names and brief text are escaped; unsafe links are not rendered',()
 test('brief includes explicit recipient/version/send and WIB due time',()=>{
   const {c}=ui();c.state.data.designers=[{id:5,full_name:'Designer'}];
   const html=c.renderDesignForms({id:1,status:'scheduled',coordinator_id:1,design_task:{id:2,brief_text:'Brief',brief_version:3,assignee_id:5,due_at:'2090-01-01T03:00:00Z'}});
-  assert(html.includes('data-version="3"'));assert(html.includes('Kirim brief'));assert(html.includes('Antrean tim desain'));assert(html.includes('2090-01-01T10:00'));
+  assert(html.includes('data-version="3"'));assert(html.includes('Kirim brief'));assert(html.includes('Belum dipilih (hanya Head Design yang melihat)'));assert(html.includes('2090-01-01T10:00'));
 });
 test('settings reply is discarded when account changes or dialog closes',async()=>{
   const {c,nodes}=ui();let resolve;c.api=()=>new Promise(r=>resolve=r);const pending=c.openPushSettings();

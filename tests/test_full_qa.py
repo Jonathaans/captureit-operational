@@ -10,6 +10,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+import unittest.mock
 import zipfile
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
@@ -284,6 +285,9 @@ class ReleaseQATests(unittest.TestCase):
         for action in ('start','ready','dispatch'):self.mutate(warehouse,base+'/warehouse',{'action':action})
         detail=json.loads(pic.request(base)[2]);assignment=detail['assignments'][0]['assignment_id']
         camera='data:image/jpeg;base64,'+base64.b64encode(b'\xff\xd8\xff\xe0synthetic-camera-qa\xff\xd9').decode()
+        with ops.get_db() as conn:   # crew may only check in on the event date: pretend today is that date
+            event_day=ops.eventdays.event_dates(conn.execute('SELECT starts_at,ends_at FROM events WHERE id=?',(event,)).fetchone())[0]
+        patcher=unittest.mock.patch.object(ops.eventdays,'today_wib',lambda:event_day);patcher.start();self.addCleanup(patcher.stop)
         for action in ('check_in','check_out'):
             self.mutate(pic,base+'/attendance',{'action':action,'assignment_id':assignment,'photo':camera,
                 'location':{'latitude':-6.2,'longitude':106.8,'accuracy_m':10,'captured_at':ops.now_iso()}})

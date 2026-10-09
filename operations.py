@@ -348,7 +348,8 @@ def notifications_payload(conn, user: dict, events: list[dict]) -> dict:
                     add(e,"transport","Atur transportasi event","Pilih kendaraan operasional, motor tim, atau layanan kurir.","logistics",revision=e.get('logistics_updated_at'))
             if "warehouse.update" in permissions and e["warehouse_status"] in {"needs_prep","preparing","issue"}:
                 add(e,"warehouse","Kesiapan alat perlu ditindaklanjuti","Periksa checklist dan kendala alat.","warehouse",revision=e["warehouse_status"])
-            if "design.update" in permissions and e["design_status"] not in {"approved","ready","done","completed"}:
+            if ("design.update" in permissions and e["design_status"] not in {"approved","ready","done","completed"}
+                    and ("design.read_all" in permissions or e.get("design_assignee_id") == user["id"])):
                 add(e,"design","Desain event belum selesai","Periksa brief dan tahap desain.","design",revision=e["design_status"])
         if "advances.approve" in permissions and e["advance_status"] == "submitted":
             add(e,"advance-review","Pengajuan uang jalan","Pengajuan menunggu persetujuan.","advance",revision=e.get("advance_updated_at"))
