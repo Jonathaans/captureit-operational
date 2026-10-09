@@ -179,6 +179,42 @@ class ReleaseQATests(unittest.TestCase):
         self.assertEqual(old.request('/api/me')[0],401)
         self.assertEqual(self.client(email,'ResetPassword!2026').request('/api/me')[0],200)
 
+    def test_admin_password_reset_revokes_previous_sessions(self):
+        uid, email, old = self.create_person()
+        result = self.mutate(self.client(), f'/api/users/{uid}/update', {
+            'action': 'password', 'password': 'AdminReset!2026', 'password_confirmation': 'AdminReset!2026',
+        })
+        self.assertTrue(result['ok'])
+        self.assertEqual(old.request('/api/me')[0], 401)
+        self.assertEqual(self.client(email, 'AdminReset!2026').request('/api/me')[0], 200)
+
+    def test_admin_can_delete_unused_inactive_account(self):
+        uid, email, old = self.create_person()
+        admin = self.client()
+        self.mutate(admin, f'/api/users/{uid}/update', {'action': 'active', 'active': False})
+        result = self.mutate(admin, f'/api/users/{uid}/update', {'action': 'delete', 'confirm': 'HAPUS'})
+        self.assertEqual(result['action'], 'delete')
+        self.assertEqual(old.request('/api/me')[0], 401)
+        deleted_login = Client(self.base)
+        self.assertEqual(deleted_login.request('/api/login', 'POST', {'email': email, 'password': 'ReleaseQA!2026'})[0], 401)
+        with ops.get_db() as conn:
+            self.assertIsNone(conn.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone())
+            audit = conn.execute("SELECT details FROM audit_logs WHERE entity_type='user' AND entity_id=? AND action='deleted' ORDER BY id DESC LIMIT 1", (uid,)).fetchone()
+            self.assertIsNotNone(audit)
+
+    def test_admin_delete_preserves_accounts_with_operational_history(self):
+        uid, _, _ = self.create_person('crew')
+        with ops.get_db() as conn:
+            event = conn.execute("INSERT INTO events(project_code,title,starts_at,ends_at) VALUES('QA-DELETE','Delete guard','2040-06-01T10:00:00+07:00','2040-06-01T18:00:00+07:00')").lastrowid
+            conn.execute("INSERT INTO event_assignments(event_id,user_id,assignment_type) VALUES(?,?,'crew')", (event, uid))
+        admin = self.client()
+        self.mutate(admin, f'/api/users/{uid}/update', {'action': 'active', 'active': False})
+        status, _, body = admin.request(f'/api/users/{uid}/update', 'POST', {'action': 'delete', 'confirm': 'HAPUS'})
+        self.assertEqual(status, 400)
+        self.assertIn('penugasan event', body.decode())
+        with ops.get_db() as conn:
+            self.assertIsNotNone(conn.execute('SELECT 1 FROM users WHERE id=?', (uid,)).fetchone())
+
     def test_reactivation_does_not_restore_revoked_sessions(self):
         uid, email, old=self.create_person()
         admin=self.client()

@@ -204,7 +204,12 @@ The database lives in the Docker volume `ops-data`. Back it up regularly and tes
 
 The Google Calendar auto-sync worker runs inside the application process and persists its last attempt in SQLite, so no separate cron job is needed. Run only one application instance for a given SQLite database; multiple instances would each start a scheduler.
 
-Accounts can be created in **Configure → Akun** by an Administrator. To add an account from the server command line instead:
+Accounts can be created in **Configure → Akun** by an Administrator. The same
+screen now supports **Ganti password** and a protected **Hapus** action. Password
+reset revokes all existing sessions. Permanent deletion is allowed only for an
+inactive account with no operational history; accounts with attendance, event,
+payroll, KPI, or review records should be left inactive so the audit trail remains
+intact. To add an account from the server command line instead:
 
 ```bash
 docker compose exec captureit-ops python3 server.py create-user --email crew1@yourdomain.id --name "Nama Crew" --role crew

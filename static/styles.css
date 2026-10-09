@@ -457,6 +457,8 @@ button { cursor: pointer; }
 .account-role-cell { display: flex; gap: 7px; min-width: 220px; }
 .account-role-cell .field-select { min-width: 125px; height: 32px; font-size: 9px; }
 .account-role-cell .button { white-space: nowrap; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 265px; }
+.account-actions .button { white-space: nowrap; }
 .rate-table-row { display: grid; grid-template-columns: minmax(120px,1fr) minmax(150px,1.1fr) auto; align-items: center; gap: 12px; border-bottom: 1px solid #f0edf5; padding: 14px 0; }
 .rate-table-row:last-child { border-bottom: 0; }
 .rate-table-row b { font: 700 11px "Manrope",sans-serif; }
@@ -737,6 +739,7 @@ a:hover { text-decoration: underline; }
   .account-create-form { grid-template-columns: 1fr 1fr; }
   .account-create-form > button { grid-column: 1 / -1; }
   .account-role-cell { flex-direction: column; min-width: 125px; }
+  .account-actions { min-width: 180px; }
   .profile-layout { grid-template-columns: 1fr; }
   .profile-document-card { grid-template-columns: 32px minmax(85px,1fr) auto auto; }
   .profile-document-hint { grid-column: 2 / -1; }

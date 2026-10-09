@@ -80,6 +80,32 @@ from `.env` and recreate only this service. To inspect only whether it remains:
 docker compose -p captureit-operational exec -T captureit-ops python3 -c 'import os; print("Bootstrap password still set:", bool(os.getenv("BOOTSTRAP_ADMIN_PASSWORD")))'
 ```
 
+## Administrator account controls
+
+In **Configure → Akun**, an Administrator can now use **Ganti password** for any
+account. The new password must be at least 12 characters; saving it revokes every
+existing session for that account. If the Administrator resets their own password,
+the current browser session is also revoked and must log in again.
+
+The **Hapus** button is intentionally conservative. The account must first be
+nonaktif, the confirmation text `HAPUS` is required, and the account cannot have
+attendance, assignment, payroll, KPI, performance-review, or other operational
+history. Accounts with history should remain nonaktif so the historical audit and
+exports keep the original user identity. The current account and the last active
+Administrator can never be deleted.
+
+For an emergency password reset from the VPS, use the same Compose project and do
+not start a second application process against the SQLite volume:
+
+```bash
+cd /var/www/captureit-operational
+docker compose -p captureit-operational exec -T captureit-ops \
+  python3 server.py reset-password --email user@yourdomain.id
+```
+
+The command prompts for the new password and also revokes the account's existing
+sessions. It does not change the CRM container or the shared PostgreSQL service.
+
 ## Stop the old ops service after acceptance
 
 Confirm `ops.captureitphotobooth.id` still proxies to `127.0.0.1:8000` and the new

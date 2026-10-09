@@ -805,15 +805,18 @@ def add_user(email: str, full_name: str, role_code: str, password: str) -> None:
         conn.execute("INSERT INTO user_roles(user_id,role_id) VALUES(?,?)", (cur.lastrowid, role_id))
 
 
-def reset_user_password(email: str, password: str) -> None:
+def reset_user_password(email: str, password: str, actor_id: int | None = None) -> None:
     validate_password(password)
+    normalized_email = email.strip().lower()
     with DB_LOCK, get_db() as conn:
         conn.execute('BEGIN IMMEDIATE')
-        cur = conn.execute("UPDATE users SET password_hash=? WHERE email=?", (password_hash(password), email.lower()))
-        if not cur.rowcount:
+        target = conn.execute("SELECT id FROM users WHERE email=?", (normalized_email,)).fetchone()
+        if not target:
             raise ValueError(f"Akun tidak ditemukan: {email}")
-        conn.execute('DELETE FROM sessions WHERE user_id=(SELECT id FROM users WHERE email=?)', (email.lower(),))
-        audit(conn, None, 'user', None, 'password_reset', {'email': email.lower(), 'sessions_revoked': True})
+        conn.execute("UPDATE users SET password_hash=? WHERE id=?", (password_hash(password), target["id"]))
+        revoked = conn.execute('DELETE FROM sessions WHERE user_id=?', (target["id"],)).rowcount
+        audit(conn, actor_id, 'user', target["id"], 'password_reset',
+              {'email': normalized_email, 'sessions_revoked': revoked})
 
 
 def role_data(conn: sqlite3.Connection, user_id: int) -> tuple[list[dict], set[str]]:
@@ -3790,9 +3793,11 @@ class Handler(SimpleHTTPRequestHandler):
     def handle_user_update(self, actor: dict, target_id: int, payload: dict) -> None:
         self.require(actor, "users.manage")
         action = payload.get("action")
+        deleted_profile_paths = []
+        password_reset_result = None
         with DB_LOCK, get_db() as conn:
             conn.execute('BEGIN IMMEDIATE')
-            target = conn.execute("SELECT id,full_name,active FROM users WHERE id=?", (target_id,)).fetchone()
+            target = conn.execute("SELECT id,full_name,email,active FROM users WHERE id=?", (target_id,)).fetchone()
             if not target:
                 raise ValueError("Akun tidak ditemukan.")
             old_roles, _ = role_data(conn,target_id)
@@ -3831,8 +3836,67 @@ class Handler(SimpleHTTPRequestHandler):
                 if not active:
                     conn.execute('DELETE FROM sessions WHERE user_id=?', (target_id,))
                 audit(conn,actor["id"],"user",target_id,"status_changed",{"from":bool(target["active"]),"to":active})
+            elif action == "password":
+                password = payload.get("password")
+                confirmation = payload.get("password_confirmation")
+                if not isinstance(password, str) or not isinstance(confirmation, str):
+                    raise ValueError("Masukkan password baru dan ulangi password tersebut.")
+                if password != confirmation:
+                    raise ValueError("Konfirmasi password tidak sama.")
+                validate_password(password)
+                conn.execute("UPDATE users SET password_hash=? WHERE id=?", (password_hash(password), target_id))
+                revoked = conn.execute("DELETE FROM sessions WHERE user_id=?", (target_id,)).rowcount
+                audit(conn, actor["id"], "user", target_id, "password_reset",
+                      {"email": target["email"], "sessions_revoked": revoked})
+                password_reset_result = {"ok": True, "id": target_id, "action": action,
+                                         "current_session_revoked": target_id == actor["id"]}
+            elif action == "delete":
+                if payload.get("confirm") != "HAPUS":
+                    raise ValueError("Ketik HAPUS untuk mengonfirmasi penghapusan akun.")
+                if target_id == actor["id"]:
+                    raise ValueError("Akun yang sedang digunakan tidak dapat dihapus.")
+                if target["active"]:
+                    raise ValueError("Nonaktifkan akun terlebih dahulu sebelum menghapusnya permanen.")
+                if is_admin:
+                    active_admins = conn.execute("""
+                        SELECT COUNT(DISTINCT u.id) FROM users u JOIN user_roles ur ON ur.user_id=u.id
+                        JOIN roles r ON r.id=ur.role_id
+                        WHERE u.active=1 AND r.code='administrator' AND u.id!=?
+                    """, (target_id,)).fetchone()[0]
+                    if active_admins <= 0:
+                        raise ValueError("Minimal satu akun Administrator aktif harus tetap tersedia.")
+                blockers = []
+                checks = [
+                    ("SELECT 1 FROM compensation_history WHERE user_id=? OR created_by=? LIMIT 1", (target_id, target_id), "riwayat kompensasi"),
+                    ("SELECT 1 FROM event_assignments WHERE user_id=? LIMIT 1", (target_id,), "penugasan event"),
+                    ("SELECT 1 FROM inhouse_attendance WHERE user_id=? LIMIT 1", (target_id,), "absensi In-house"),
+                    ("SELECT 1 FROM inhouse_salary_rates WHERE user_id=? LIMIT 1", (target_id,), "riwayat gaji In-house"),
+                    ("SELECT 1 FROM inhouse_payroll_payouts WHERE user_id=? LIMIT 1", (target_id,), "riwayat payroll In-house"),
+                    ("SELECT 1 FROM inhouse_monthly_salary_claims WHERE user_id=? LIMIT 1", (target_id,), "klaim payroll In-house"),
+                    ("SELECT 1 FROM cash_advance_documents WHERE uploaded_by=? LIMIT 1", (target_id,), "dokumen uang jalan"),
+                    ("SELECT 1 FROM kpi_reviews WHERE reviewer_id=? OR subject_id=? LIMIT 1", (target_id, target_id), "riwayat KPI"),
+                    ("SELECT 1 FROM event_performance_reviews WHERE reviewer_id=? LIMIT 1", (target_id,), "penilaian performance"),
+                ]
+                for query, params, label in checks:
+                    if conn.execute(query, params).fetchone():
+                        blockers.append(label)
+                if blockers:
+                    raise ValueError("Akun memiliki " + ", ".join(blockers) + ". Gunakan Nonaktifkan agar riwayat tetap aman.")
+                profile = conn.execute("SELECT profile_photo_path,ktp_front_path,ktp_back_path FROM user_profiles WHERE user_id=?", (target_id,)).fetchone()
+                deleted_profile_paths = [profile[column] for column in ("profile_photo_path", "ktp_front_path", "ktp_back_path") if profile and profile[column]]
+                audit(conn, actor["id"], "user", target_id, "deleted",
+                      {"email": target["email"], "full_name": target["full_name"]})
+                conn.execute("DELETE FROM users WHERE id=?", (target_id,))
             else:
                 raise ValueError("Tindakan akun tidak dikenal.")
+        for profile_path in deleted_profile_paths:
+            try:
+                remove_profile_file(profile_path)
+            except OSError:
+                pass
+        if password_reset_result is not None:
+            self.json_response(password_reset_result)
+            return
         self.json_response({"ok":True,"id":target_id,"action":action})
 
     def handle_calendar_code_assign(self, actor: dict, intake_id: int, payload: dict) -> None:

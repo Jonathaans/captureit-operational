@@ -102,6 +102,16 @@
     <div id="compensation-body"></div>
     <button type="button" class="text-link" data-action="retry-compensation-history">Muat ulang riwayat</button>
   </dialog>
+  <dialog id="account-password-dialog" class="compensation-dialog account-password-dialog" aria-labelledby="account-password-title">
+    <div class="compensation-dialog-head"><h2 id="account-password-title">Ganti password akun</h2><button type="button" class="button button-light button-small" data-action="close-account-password" autofocus>Tutup</button></div>
+    <p id="account-password-account" class="account-password-account"></p>
+    <p id="account-password-error" class="inline-form-error" role="alert" hidden></p>
+    <form id="account-password-form" class="account-password-form">
+      <label class="field-label">Password baru<input class="field-input" name="password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required><small>Minimal 12 karakter.</small></label>
+      <label class="field-label">Ulangi password<input class="field-input" name="password_confirmation" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required></label>
+      <div class="account-password-actions"><button type="button" class="button button-light" data-action="close-account-password">Batal</button><button type="submit" class="button button-primary">Simpan password</button></div>
+    </form>
+  </dialog>
   <dialog id="logout-dialog" class="logout-dialog" aria-labelledby="logout-title" aria-describedby="logout-description">
     <span class="logout-dialog-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4M14 8l4 4-4 4M8 12h10" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
     <h2 id="logout-title">Keluar dari workspace?</h2><p id="logout-description">Anda dapat masuk kembali kapan saja untuk melanjutkan pekerjaan.</p>

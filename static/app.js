@@ -702,8 +702,8 @@ function renderConfigureAccounts() {
       <label class="field-label">Password awal<input class="field-input" name="password" type="password" minlength="12" autocomplete="new-password" required><small>Minimal 12 karakter</small></label>
       <button class="button button-primary" type="submit">＋ Buat akun</button>
     </form></div></section>
-    <section class="panel table-panel account-list-panel"><div class="panel-head"><div><h3>Daftar akun</h3><p>Role dapat diubah dan akun yang tidak aktif dapat diaktifkan kembali.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>NAMA</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="table-person"><span class="avatar avatar-purple">${initials(person.full_name)}</span><span>${escapeHtml(person.full_name)}</span></div></td><td>${escapeHtml(person.email)}</td><td><div class="account-role-cell"><select class="field-select" data-user-role="${person.id}">${roles.map((role) => `<option value="${escapeHtml(role.code)}" ${person.roles.some((current) => current.code === role.code) ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}</select><button class="button button-light button-small" data-action="save-user-role" data-id="${person.id}">Simpan role</button></div></td><td>${badge(person.active ? "Aktif" : "Nonaktif",person.active ? "green" : "gray")}</td><td><button class="button ${person.active ? "button-danger" : "button-light"} button-small" data-action="toggle-user-active" data-id="${person.id}" data-next-active="${person.active ? "false" : "true"}" ${person.id === state.data.user.id ? "disabled title=\"Akun yang sedang digunakan tidak dapat dinonaktifkan\"" : ""}>${person.active ? "Nonaktifkan" : "Aktifkan"}</button></td></tr>`).join("")}</tbody></table></div></section>
-    <div class="rate-info"><b>Perlindungan akses</b><span class="rate-note">Perubahan role dan status akun dicatat di audit. Akun nonaktif tidak dapat masuk atau menerima penugasan baru.</span></div>`;
+    <section class="panel table-panel account-list-panel"><div class="panel-head"><div><h3>Daftar akun</h3><p>Role dapat diubah, password dapat direset, dan akun nonaktif dapat dihapus jika belum memiliki riwayat operasional.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>NAMA</th><th>EMAIL</th><th>ROLE</th><th>STATUS</th><th>AKSI</th></tr></thead><tbody>${people.map((person) => `<tr><td><div class="table-person"><span class="avatar avatar-purple">${initials(person.full_name)}</span><span>${escapeHtml(person.full_name)}</span></div></td><td>${escapeHtml(person.email)}</td><td><div class="account-role-cell"><select class="field-select" data-user-role="${person.id}">${roles.map((role) => `<option value="${escapeHtml(role.code)}" ${person.roles.some((current) => current.code === role.code) ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}</select><button class="button button-light button-small" data-action="save-user-role" data-id="${person.id}">Simpan role</button></div></td><td>${badge(person.active ? "Aktif" : "Nonaktif",person.active ? "green" : "gray")}</td><td><div class="account-actions"><button class="button button-light button-small" data-action="open-account-password" data-id="${person.id}" data-name="${escapeHtml(person.full_name)}" data-email="${escapeHtml(person.email)}">Ganti password</button><button class="button ${person.active ? "button-danger" : "button-light"} button-small" data-action="toggle-user-active" data-id="${person.id}" data-next-active="${person.active ? "false" : "true"}" ${person.id === state.data.user.id ? "disabled title=\"Akun yang sedang digunakan tidak dapat dinonaktifkan\"" : ""}>${person.active ? "Nonaktifkan" : "Aktifkan"}</button><button class="button button-danger button-small" data-action="delete-user" data-id="${person.id}" data-name="${escapeHtml(person.full_name)}" ${person.active || person.id === state.data.user.id ? "disabled title=\"Nonaktifkan akun terlebih dahulu; akun sendiri tidak dapat dihapus\"" : ""}>Hapus</button></div></td></tr>`).join("")}</tbody></table></div></section>
+    <div class="rate-info"><b>Perlindungan akses</b><span class="rate-note">Reset password mencabut semua sesi akun tersebut. Hapus permanen hanya tersedia untuk akun nonaktif yang belum memiliki riwayat operasional agar payroll, absensi, dan audit tetap aman.</span></div>`;
 }
 
 function renderConfigureRoles() {
@@ -1225,6 +1225,27 @@ async function runAction(element) {
       }
       return;
     }
+    if (action === "open-account-password") {
+      openAccountPasswordDialog(element);
+      return;
+    }
+    if (action === "close-account-password") {
+      closeAccountPasswordDialog();
+      return;
+    }
+    if (action === "delete-user") {
+      const name = element.dataset.name || "akun ini";
+      if (element.disabled) return;
+      if (!window.confirm(`Hapus akun ${name} secara permanen? Riwayat operasional tidak ikut dihapus dan akun tidak dapat dipulihkan.`)) return;
+      if (window.prompt(`Ketik HAPUS untuk menghapus akun ${name}.`) !== "HAPUS") {
+        toast("Penghapusan dibatalkan.", "error");
+        return;
+      }
+      await api(`/api/users/${element.dataset.id}/update`, { method: "POST", body: JSON.stringify({ action: "delete", confirm: "HAPUS" }) });
+      toast("Akun berhasil dihapus.");
+      await refreshData();
+      return;
+    }
     if (action === "save-user-role") {
       const role = $(`[data-user-role="${element.dataset.id}"]`).value;
       await api(`/api/users/${element.dataset.id}/update`, { method: "POST", body: JSON.stringify({ action: "role", role }) });
@@ -1376,6 +1397,41 @@ async function submitCreateAccount(form) {
   await refreshData();
 }
 
+function openAccountPasswordDialog(button) {
+  const dialog = $("#account-password-dialog");
+  const form = $("#account-password-form");
+  if (!dialog || !form) return;
+  form.dataset.userId = button.dataset.id;
+  form.reset();
+  $("#account-password-account").innerHTML = `<b>${escapeHtml(button.dataset.name)}</b><small>${escapeHtml(button.dataset.email)}</small>`;
+  $("#account-password-error").hidden = true;
+  dialog.showModal();
+  form.querySelector("[name=password]").focus();
+}
+
+function closeAccountPasswordDialog() {
+  const dialog = $("#account-password-dialog");
+  if (dialog?.open) dialog.close();
+}
+
+async function submitAccountPassword(form) {
+  const data = new FormData(form);
+  const password = String(data.get("password") || "");
+  const passwordConfirmation = String(data.get("password_confirmation") || "");
+  if (password !== passwordConfirmation) throw new Error("Konfirmasi password tidak sama.");
+  const result = await api(`/api/users/${form.dataset.userId}/update`, {
+    method: "POST",
+    body: JSON.stringify({ action: "password", password, password_confirmation: passwordConfirmation }),
+  });
+  closeAccountPasswordDialog();
+  toast(result.current_session_revoked ? "Password diperbarui. Sesi Anda dicabut; silakan masuk kembali." : "Password akun berhasil diperbarui.");
+  if (result.current_session_revoked) {
+    setTimeout(() => window.location.reload(), 500);
+  } else {
+    await refreshData();
+  }
+}
+
 async function imageFileAsDataUrl(file, maxDimension, maxDataUrlLength) {
   if (!file || !["image/jpeg", "image/png"].includes(file.type)) throw new Error("Pilih gambar JPG atau PNG.");
   let bitmap;
@@ -1514,6 +1570,20 @@ document.addEventListener("submit", async (event) => {
   }
   if (event.target.id === "create-account-form") {
     event.preventDefault(); try { await submitCreateAccount(event.target); } catch (err) { toast(err.message,"error"); }
+  }
+  if (event.target.id === "account-password-form") {
+    event.preventDefault();
+    const submit = event.target.querySelector("button[type=submit]");
+    submit.disabled = true;
+    try {
+      await submitAccountPassword(event.target);
+    } catch (err) {
+      const error = $("#account-password-error");
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
   }
   if (event.target.id === "appearance-form") {
     event.preventDefault(); try { await submitAppearance(event.target); } catch (err) { toast(err.message,"error"); }
