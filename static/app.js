@@ -1465,12 +1465,6 @@ document.addEventListener("click", (event) => {
     if (button.dataset.action === "backdrop-close") { state.drawer = null; $("#modal-root").innerHTML = ""; return; }
     runAction(button);
   }
-  const demo = event.target.closest("[data-demo-email]");
-  if (demo) {
-    $("#login-email").value = demo.dataset.demoEmail;
-    $("#login-password").value = "demo1234";
-    $("#login-password").focus();
-  }
 });
 
 document.addEventListener("submit", async (event) => {
