@@ -49,6 +49,15 @@ PORT = int(os.environ.get("PORT", "8000"))
 PASSWORD_ITERATIONS = 260_000
 DB_LOCK = threading.RLock()
 GOOGLE_SYNC_LOCK = threading.RLock()
+BACKGROUND_TASKS_LOCK = threading.Lock()
+BACKGROUND_TASKS_STARTED = False
+SECURITY_HEADERS = (
+    ("X-Content-Type-Options", "nosniff"),
+    ("X-Frame-Options", "DENY"),
+    ("Content-Security-Policy", "frame-ancestors 'none'; base-uri 'self'; object-src 'none'"),
+    ("Referrer-Policy", "same-origin"),
+    ("Cache-Control", "no-store"),
+)
 
 
 ROLE_LIST = [
@@ -1906,11 +1915,8 @@ class Handler(SimpleHTTPRequestHandler):
             super().log_message(fmt, *args)
 
     def end_headers(self):
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.send_header('X-Frame-Options', 'DENY')
-        self.send_header('Content-Security-Policy', "frame-ancestors 'none'; base-uri 'self'; object-src 'none'")
-        self.send_header("Referrer-Policy", "same-origin")
-        self.send_header("Cache-Control", "no-store")
+        for name, value in SECURITY_HEADERS:
+            self.send_header(name, value)
         super().end_headers()
 
     def do_GET(self):
@@ -3918,13 +3924,29 @@ class Handler(SimpleHTTPRequestHandler):
         self.json_response({"ok":False,"error":message},status)
 
 
-def main() -> None:
+def configure_runtime() -> None:
+    """Load the same configuration for the local CLI and production entry point."""
     global DB_PATH, DEMO_MODE, HOST, PORT
     load_dotenv()
     DB_PATH = Path(os.environ.get("OPS_DB_PATH", str(ROOT / "ops.sqlite3")))
     DEMO_MODE = os.environ.get("DEMO_MODE", "true").lower() in {"1", "true", "yes"}
     HOST = os.environ.get("HOST", "127.0.0.1")
     PORT = int(os.environ.get("PORT", "8000"))
+
+
+def start_background_tasks() -> None:
+    """Start one pair of schedulers per process; deploy only one app process."""
+    global BACKGROUND_TASKS_STARTED
+    with BACKGROUND_TASKS_LOCK:
+        if BACKGROUND_TASKS_STARTED:
+            return
+        threading.Thread(target=google_sync_scheduler, name="google-calendar-auto-sync", daemon=True).start()
+        threading.Thread(target=notification_scheduler, name="notifications-and-push", daemon=True).start()
+        BACKGROUND_TASKS_STARTED = True
+
+
+def main() -> None:
+    configure_runtime()
     parser = argparse.ArgumentParser(description="Capture It Operations MVP")
     sub = parser.add_subparsers(dest="command")
     create = sub.add_parser("create-user", help="Buat akun dan assign role")
@@ -3960,10 +3982,10 @@ def main() -> None:
     initialize()
     if DEMO_MODE:
         print("DEMO MODE aktif — contoh akun tersedia; ganti DEMO_MODE=false untuk penggunaan VPS.")
-    threading.Thread(target=google_sync_scheduler, name="google-calendar-auto-sync", daemon=True).start()
-    threading.Thread(target=notification_scheduler, name="notifications-and-push", daemon=True).start()
+    start_background_tasks()
     ThreadingHTTPServer((HOST,PORT),Handler).serve_forever()
 
 
 if __name__ == "__main__":
     main()
+

@@ -1,12 +1,17 @@
 .env
 *.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+backups/
 __pycache__
 *.pyc
 .git
 attendance-photos/
+inhouse-attendance-photos/
 private-profile-uploads/
 cash-advance-documents/
 branding-assets/
 *service-account*.json
 firebase-*.json
 secrets/
+

@@ -2,16 +2,28 @@ services:
   captureit-ops:
     build: .
     restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 64
     env_file:
       - .env
     environment:
       HOST: 0.0.0.0
       PORT: 8000
       OPS_DB_PATH: /data/ops.sqlite3
+      BACKUP_DIR: /data/backups
+      # Safe only with the loopback port below and this dedicated app network.
+      OPS_TRUSTED_PROXY: "*"
     ports:
       - "127.0.0.1:${PUBLIC_PORT:-8000}:8000"
     volumes:
       - ops-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   ops-data:

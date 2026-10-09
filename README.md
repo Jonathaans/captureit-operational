@@ -10,7 +10,7 @@ Closing drafts remain recoverable as described in `UPDATE-JADWAL-DRAFT.md`. The 
 
 ## Start a local demo
 
-Requires Python 3.10 or newer. The local demo and inbox use the Python standard library. Sending device push additionally requires `python3 -m pip install -r requirements-push.txt` and Firebase configuration. The Docker image installs the push dependency.
+Requires Python 3.10 or newer. The local demo and inbox use the Python standard library. Sending device push additionally requires `python3 -m pip install -r requirements-push.txt` and Firebase configuration. The Docker image installs the push dependency and Waitress from `requirements-server.txt` for the production HTTP transport.
 
 ```bash
 cd captureit-ops
@@ -172,6 +172,12 @@ docker compose up -d captureit-ops
 
 ## Self-host on a VPS with Docker Compose
 
+Docker serves the application through `production.py` and Waitress with one process
+and four request threads. The administrator CLI and local demo remain in `server.py`.
+For the existing Capture It VPS, read [deploy/VPS-OPERATIONS.md](deploy/VPS-OPERATIONS.md)
+for backup, targeted upgrade, resource limits and rollback commands. Keep the Compose
+project name unchanged on upgrades so the existing data volume is reused.
+
 Read `QA-PRA-VPS.md` first for the tested scope, unresolved deployment gates,
 manual acceptance checklist, and rollback procedure. This release is approved
 for staging QA only, not a production security certification.
@@ -214,4 +220,4 @@ This initial package uses SQLite with foreign keys and WAL mode to keep a single
 
 Freelancer assignments are globally claimed by the first exported payroll batch, so overlapping exports omit assignments already in a batch; a unique database key also prevents two claims for the same assignment. In-house payout transfer is limited to one transfer per account and calendar month, guarded by a unique claim and a transaction lock. Historical audit warnings are printed at startup if an assignment appears in multiple old batches or an In-house account-month appears in multiple transferred periods; investigate these records and reconcile real bank transfers before go-live. A wrong export currently needs finance review before continuing, because reserved claims are intentionally not silently reassigned.
 
-This is a tested MVP, not a certified 100% production rollout. Before go-live, configure a real VPS/domain and HTTPS, disable demo mode, provision actual accounts and approved fee rates, configure and test Google Calendar credentials, synchronize the VPS clock, verify database and private-file backups by restoring them, check historical payroll duplicates against bank records, and run a production smoke test with real role permissions. Python's documentation explicitly does not recommend `http.server` for production. Keep this build restricted to staging/internal evaluation; replacing the HTTP serving layer with a production-grade application server and validating the deployment is a separate production gate, not something a reverse proxy alone guarantees. SQLite remains single-instance; assess PostgreSQL before multi-instance deployment or sustained write concurrency. Never deploy with `DEMO_MODE=true` or the demo password. Turning demo mode off does not delete demo accounts already present in an old database.
+This is a tested MVP, not a certified 100% production rollout. Before go-live, configure a real VPS/domain and HTTPS, disable demo mode, provision actual accounts and approved fee rates, configure and test Google Calendar credentials, synchronize the VPS clock, verify database and private-file backups by restoring them, check historical payroll duplicates against bank records, and run a production smoke test with real role permissions. Docker now uses Waitress for HTTP parsing and WSGI dispatch. The `http.server` entry point remains for local development only. Keep the preview restricted until the deployment and acceptance checks are complete; changing the server does not itself verify those checks. SQLite remains single-instance; assess PostgreSQL before multi-instance deployment or sustained write concurrency. Never deploy with `DEMO_MODE=true` or the demo password. Turning demo mode off does not delete demo accounts already present in an old database.
