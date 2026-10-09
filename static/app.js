@@ -750,7 +750,17 @@ function renderProfilePage() {
         <label class="field-label">Email akun<input class="field-input" value="${escapeHtml(user.email)}" readonly></label>
         <label class="field-label">Nomor WhatsApp<input class="field-input" name="phone" type="tel" maxlength="30" value="${escapeHtml(profile.phone || "")}" placeholder="08xx atau +62..."><small>Nomor ini tampil di direktori Crew/PIC untuk tim operasional.</small></label>
         <button class="button button-primary" type="submit">Simpan profil</button>
-      </form></section>
+      </form>
+      <section class="profile-security-section"><div class="profile-security-head"><div><h3>Keamanan akun</h3><p>Ganti password Anda tanpa bantuan Administrator.</p></div><span class="badge badge-purple">Privat</span></div>
+        <form id="profile-password-form" class="profile-password-form">
+          <label class="field-label">Password saat ini<input class="field-input" name="current_password" type="password" autocomplete="current-password" required></label>
+          <label class="field-label">Password baru<input class="field-input" name="new_password" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required><small>Minimal 12 karakter.</small></label>
+          <label class="field-label">Ulangi password baru<input class="field-input" name="password_confirmation" type="password" minlength="12" maxlength="1024" autocomplete="new-password" required></label>
+          <p class="inline-form-error" data-profile-password-error role="alert" hidden></p>
+          <button class="button button-primary" type="submit">Ganti password</button>
+        </form>
+        <p class="profile-security-note">Password baru langsung berlaku. Sesi akun di perangkat lain akan dicabut, sedangkan perangkat ini tetap masuk.</p>
+      </section></section>
       <section class="panel profile-documents-panel"><div class="panel-head"><div><h3>Dokumen KTP</h3><p>Unggah sisi depan dan belakang agar pendataan Crew/PIC lengkap.</p></div><span class="badge badge-gold">Data pribadi</span></div>
         <div class="profile-documents">${ktpCard("front","Depan",profile.ktp_front_url)}${ktpCard("back","Belakang",profile.ktp_back_url)}</div>
         <div class="profile-privacy-note"><b>Akses terbatas</b><span>KTP hanya dapat dilihat oleh pemilik akun, Administrator, dan Head Operations. Direktori lain hanya menampilkan status kelengkapan.</span></div>
@@ -1464,6 +1474,20 @@ async function submitProfile(form) {
   await refreshData();
 }
 
+async function submitProfilePassword(form) {
+  const data = new FormData(form);
+  const currentPassword = String(data.get("current_password") || "");
+  const newPassword = String(data.get("new_password") || "");
+  const confirmation = String(data.get("password_confirmation") || "");
+  if (newPassword !== confirmation) throw new Error("Konfirmasi password baru tidak sama.");
+  const result = await api("/api/profile/password", {
+    method: "POST",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword, password_confirmation: confirmation }),
+  });
+  form.reset();
+  toast(`Password berhasil diubah. ${result.sessions_revoked || 0} sesi perangkat lain dicabut.`);
+}
+
 async function submitKtp(form) {
   const file = form.querySelector('input[type="file"]')?.files?.[0];
   if (!file) throw new Error("Pilih gambar KTP terlebih dahulu.");
@@ -1611,6 +1635,22 @@ document.addEventListener("submit", async (event) => {
   }
   if (event.target.id === "profile-form") {
     event.preventDefault(); try { await submitProfile(event.target); } catch (err) { toast(err.message,"error"); }
+  }
+  if (event.target.id === "profile-password-form") {
+    event.preventDefault();
+    const form = event.target;
+    const submit = form.querySelector("button[type=submit]");
+    const error = form.querySelector("[data-profile-password-error]");
+    submit.disabled = true;
+    error.hidden = true;
+    try {
+      await submitProfilePassword(form);
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
   }
   if (event.target.matches("[data-ktp-form]")) {
     event.preventDefault(); try { await submitKtp(event.target); } catch (err) { toast(err.message,"error"); }

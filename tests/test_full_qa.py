@@ -188,6 +188,35 @@ class ReleaseQATests(unittest.TestCase):
         self.assertEqual(old.request('/api/me')[0], 401)
         self.assertEqual(self.client(email, 'AdminReset!2026').request('/api/me')[0], 200)
 
+    def test_user_can_change_own_password_and_keep_current_session(self):
+        _, email, current = self.create_person()
+        other_session = self.client(email, 'ReleaseQA!2026')
+        status, _, body = current.request('/api/profile/password', 'POST', {
+            'current_password': 'ReleaseQA!2026',
+            'new_password': 'SelfChange!2026',
+            'password_confirmation': 'SelfChange!2026',
+        })
+        self.assertEqual(status, 200, body.decode())
+        result = json.loads(body)
+        self.assertTrue(result['current_session_preserved'])
+        self.assertEqual(result['sessions_revoked'], 1)
+        self.assertEqual(current.request('/api/me')[0], 200)
+        self.assertEqual(other_session.request('/api/me')[0], 401)
+        old_login = Client(self.base)
+        self.assertEqual(old_login.request('/api/login', 'POST', {'email': email, 'password': 'ReleaseQA!2026'})[0], 401)
+        self.assertEqual(self.client(email, 'SelfChange!2026').request('/api/me')[0], 200)
+
+    def test_user_password_change_rejects_wrong_current_password(self):
+        _, email, current = self.create_person()
+        status, _, body = current.request('/api/profile/password', 'POST', {
+            'current_password': 'WrongPassword!2026',
+            'new_password': 'SelfChange!2026',
+            'password_confirmation': 'SelfChange!2026',
+        })
+        self.assertEqual(status, 400)
+        self.assertIn('saat ini salah', body.decode())
+        self.assertEqual(self.client(email, 'ReleaseQA!2026').request('/api/me')[0], 200)
+
     def test_admin_can_delete_unused_inactive_account(self):
         uid, email, old = self.create_person()
         admin = self.client()

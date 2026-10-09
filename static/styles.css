@@ -430,6 +430,17 @@ button { cursor: pointer; }
 .profile-form .field-input { min-height: 38px; font-size: 11px; }
 .profile-form .field-input[readonly] { background: #f7f5fa; color: #898198; }
 .profile-form .field-label small { color: #9b94a9; font-size: 9px; }
+.profile-security-section { margin: 0 16px 16px; padding-top: 16px; border-top: 1px solid #f0edf5; }
+.profile-security-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 13px; }
+.profile-security-head h3 { margin: 0; font: 700 12px "Manrope",sans-serif; color: #4f4166; }
+.profile-security-head p { margin: 4px 0 0; color: #9b94a9; font-size: 9px; line-height: 1.5; }
+.profile-password-form { display: grid; gap: 10px; }
+.profile-password-form .field-label { display: grid; gap: 6px; }
+.profile-password-form .field-input { min-height: 38px; font-size: 11px; }
+.profile-password-form .field-label small { color: #9b94a9; font-size: 9px; }
+.profile-password-form .inline-form-error { margin: 0; }
+.profile-password-form .button { justify-self: start; }
+.profile-security-note { margin: 11px 0 0; color: #9b94a9; font-size: 9px; line-height: 1.6; }
 .profile-avatar-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #f0edf5; }
 .profile-avatar-row > small { color: #9b94a9; font-size: 9px; }
 .profile-avatar { display: grid; place-items: center; width: 76px; height: 76px; overflow: hidden; border-radius: 50%; background: #eee9ff; color: var(--purple); font: 800 18px "Manrope",sans-serif; }

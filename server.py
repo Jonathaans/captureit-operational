@@ -2092,6 +2092,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_configure_asset(user, payload)
             elif parsed.path == "/api/configure/roles":
                 self.handle_configure_roles(user, payload)
+            elif parsed.path == "/api/profile/password":
+                self.handle_profile_password_change(user, payload)
             elif parsed.path == "/api/profile":
                 self.handle_profile_update(user, payload)
             elif parsed.path == "/api/profile/ktp":
@@ -3726,6 +3728,36 @@ class Handler(SimpleHTTPRequestHandler):
         with get_db() as conn:
             profile = user_profile_summary(conn,actor["id"])
         self.json_response({"ok":True,"profile":profile})
+
+    def handle_profile_password_change(self, actor: dict, payload: dict) -> None:
+        self.require(actor, "profile.update_own")
+        current_password = payload.get("current_password")
+        new_password = payload.get("new_password")
+        confirmation = payload.get("password_confirmation")
+        if not all(isinstance(value, str) for value in (current_password, new_password, confirmation)):
+            raise ValueError("Masukkan password saat ini, password baru, dan konfirmasinya.")
+        if not current_password or len(current_password) > 1024:
+            raise ValueError("Password saat ini tidak valid.")
+        if new_password != confirmation:
+            raise ValueError("Konfirmasi password baru tidak sama.")
+        validate_password(new_password)
+        if current_password == new_password:
+            raise ValueError("Password baru harus berbeda dari password saat ini.")
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            target = conn.execute("SELECT password_hash,active FROM users WHERE id=?", (actor["id"],)).fetchone()
+            if not target or not target["active"]:
+                raise PermissionError("Akun tidak aktif.")
+            if not check_password(current_password, target["password_hash"]):
+                raise ValueError("Password saat ini salah.")
+            if check_password(new_password, target["password_hash"]):
+                raise ValueError("Password baru harus berbeda dari password saat ini.")
+            conn.execute("UPDATE users SET password_hash=? WHERE id=?", (password_hash(new_password), actor["id"]))
+            revoked = conn.execute("DELETE FROM sessions WHERE user_id=? AND token_hash!=?",
+                                   (actor["id"], actor["session_hash"])).rowcount
+            audit(conn, actor["id"], "user", actor["id"], "password_changed",
+                  {"sessions_revoked": revoked, "current_session_preserved": True})
+        self.json_response({"ok":True,"sessions_revoked":revoked,"current_session_preserved":True})
 
     def handle_profile_ktp_upload(self, actor: dict, payload: dict) -> None:
         self.require(actor, "profile.update_own")

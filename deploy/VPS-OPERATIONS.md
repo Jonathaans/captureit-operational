@@ -87,6 +87,11 @@ account. The new password must be at least 12 characters; saving it revokes ever
 existing session for that account. If the Administrator resets their own password,
 the current browser session is also revoked and must log in again.
 
+Every signed-in user can change their own password from **Profil Saya → Keamanan
+akun**. The form requires the current password and confirmation of a new password
+of at least 12 characters. The current browser session remains active, while other
+sessions for that account are revoked.
+
 The **Hapus** button is intentionally conservative. The account must first be
 nonaktif, the confirmation text `HAPUS` is required, and the account cannot have
 attendance, assignment, payroll, KPI, performance-review, or other operational
