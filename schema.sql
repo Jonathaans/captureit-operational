@@ -355,6 +355,19 @@ CREATE TABLE IF NOT EXISTS inhouse_attendance (
     UNIQUE(user_id, work_date)
 );
 
+CREATE TABLE IF NOT EXISTS inhouse_shifts (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    work_date TEXT NOT NULL,
+    shift_name TEXT NOT NULL,
+    work_start TEXT NOT NULL,
+    work_end TEXT NOT NULL,
+    late_grace_minutes INTEGER NOT NULL DEFAULT 0,
+    early_grace_minutes INTEGER NOT NULL DEFAULT 0,
+    updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY(user_id, work_date)
+);
+
 CREATE TABLE IF NOT EXISTS inhouse_salary_rates (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE RESTRICT,
     monthly_salary_rupiah INTEGER NOT NULL DEFAULT 0 CHECK (monthly_salary_rupiah >= 0),

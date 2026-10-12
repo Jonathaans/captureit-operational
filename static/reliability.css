@@ -56,3 +56,22 @@
 .design-note p{margin:0 0 5px}.design-note small{color:#7c748a}
 [data-payslip-id]{scroll-margin-top:24px}
 @media(max-width:540px){.push-category-grid,.push-time-grid{grid-template-columns:1fr}.push-settings-dialog{width:calc(100vw - 24px);padding:18px}.push-actions .button{flex:1}.design-brief-card{padding:14px}.push-device-list>div{align-items:flex-start}}
+
+/* Attendance controls remain reachable on phones and with the keyboard. */
+.camera-dialog { max-height: 94dvh; }
+.camera-stage video, .camera-stage img { object-fit: contain; }
+.camera-recovery { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.camera-file-label { cursor: pointer; }
+.camera-actions button, .camera-recovery .button { min-height: 44px; }
+.shift-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.shift-form .inline-form-error, .shift-form-actions { grid-column: 1 / -1; }
+.shift-form-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.shift-history-label { display: block; color: var(--muted); margin-top: 4px; }
+.shift-overnight-note { color: var(--purple); font-weight: 600; }
+.kanban-card[data-action] { cursor: pointer; touch-action: pan-x pan-y; }
+.kanban-card[data-action]:focus-visible { outline: 3px solid var(--purple); outline-offset: 3px; }
+@media (max-width: 600px) {
+  .shift-form { grid-template-columns: minmax(0, 1fr); }
+  .inhouse-own-body { align-items: stretch; }
+  .camera-actions .button { flex: 1 1 auto; }
+}

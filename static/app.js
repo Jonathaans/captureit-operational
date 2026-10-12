@@ -192,7 +192,7 @@ function navGroups() {
     { label: "KEUANGAN OPERASIONAL", items: [] },
     { label: "PENGELOLAAN", items: [] },
   ];
-  if (p.includes("attendance.inhouse.self") || p.includes("attendance.inhouse.read_all")) groups[1].items.push({ id: "inhouse-attendance", label: "Absensi In-house", icon: "◷" });
+  if (p.includes("attendance.inhouse.self") || p.includes("attendance.inhouse.read_all") || p.includes("attendance.inhouse.schedule")) groups[1].items.push({ id: "inhouse-attendance", label: "Absensi In-house", icon: "◷" });
   if (p.includes("events.read_all") || p.includes("events.read_own")) groups[1].items.push({ id: "events", label: "Jadwal Event", icon: "▦", count: state.data.dashboard.total_upcoming });
   if (p.includes("events.project_code.manage") || p.includes("events.assign")) groups[1].items.push({ id: "crm-queue", label: "Kode CRM", icon: "◫", count: (state.data.calendar_code_queue || []).length || null });
   if (p.includes("events.assign")) groups[1].items.push({ id: "vehicles", label: "Transportasi Event", icon: "▱" });
@@ -220,6 +220,7 @@ function renderShell() {
     ? `<img src="${escapeHtml(state.data.profile.profile_photo_url)}" alt="Foto ${escapeHtml(user.full_name)}">`
     : initials(user.full_name);
   const nav = navGroups();
+  if (!nav.some(group => group.items.some(item => item.id === state.page))) state.page = "dashboard";
   $("#navigation").innerHTML = nav.map((group) => `
     <div class="nav-group">
       <div class="nav-group-label">${escapeHtml(group.label)}</div>
@@ -459,13 +460,13 @@ function renderDesignPage() {
   const columns = designStages.map(([stage, title]) => {
     const cards = tasks.filter((task) => task.status === stage);
     return `<section class="kanban-column" data-stage="${stage}"><div class="kanban-head"><b>${title}</b><span class="kanban-count">${cards.length}</span></div>
-      ${cards.map((task) => `<article class="kanban-card" draggable="${has("design.update")}" data-task-id="${task.id}">
+      ${cards.map((task) => `<article class="kanban-card" draggable="${has("design.update")}" data-task-id="${task.id}" data-action="open-event" data-id="${task.event_id}" data-tab="design" role="button" tabindex="0" aria-label="Buka detail event ${escapeHtml(task.event_title)}">
         <span class="kanban-card-code">${escapeHtml(task.project_code)}</span><h4>${escapeHtml(task.event_title)}</h4><p>${escapeHtml(task.location || "Lokasi belum ada")} · ${datePart(task.starts_at)}</p>
-        <div class="kanban-card-foot"><span class="due">${task.due_at ? `Deadline ${datePart(task.due_at)}` : "Belum ada deadline"}</span><button class="detail-button button-small" data-action="open-event" data-id="${task.event_id}">Event ↗</button></div>
+        <div class="kanban-card-foot"><span class="due">${task.due_at ? `Deadline ${datePart(task.due_at)}` : "Belum ada deadline"}</span><span class="detail-button button-small">Detail event ↗</span></div>
       </article>`).join("")}${cards.length ? "" : `<div class="empty-state" style="padding:34px 8px;font-size:9px">Belum ada kartu</div>`}</section>`;
   }).join("");
-  return `${pageHead("DESIGN STUDIO", "Alur kerja desain", "Geser kartu antar tahap. Riwayat perubahan status tercatat.", `<span class="badge badge-purple">${tasks.length} task aktif</span>`)}
-    <div class="kanban-scroll"><div class="kanban">${columns}</div></div><div class="drag-note">${has("design.update") ? "Tarik kartu ke kolom berikutnya untuk memperbarui tahap." : "Mode lihat saja · Hubungi Team Design untuk perubahan status."}</div>`;
+  return `${pageHead("DESIGN STUDIO", "Alur kerja desain", "Klik kartu untuk membuka detail event dan brief desain. Riwayat perubahan status tercatat.", `<span class="badge badge-purple">${tasks.length} task aktif</span>`)}
+    <div class="kanban-scroll"><div class="kanban">${columns}</div></div><div class="drag-note">${has("design.update") ? "Tarik kartu untuk mengubah tahap, atau buka kartu dan gunakan form tahap desain di laptop/HP." : "Mode lihat saja · Hubungi Team Design untuk perubahan status."}</div>`;
 }
 
 function warehouseNext(status) {
@@ -532,19 +533,17 @@ async function renderInhouseAttendancePage() {
     const selected = state.inhouseDate || localDateISO();
     const result = await api(`/api/inhouse-attendance?date=${encodeURIComponent(selected)}`);
     const canSelf = has("attendance.inhouse.self") && state.data.user.employment_type === "inhouse";
-    const own = result.own_today;
     const schedule = result.schedule || state.data.inhouse_schedule || {};
-    const action = own?.status === "not_started" ? "check_in" : own?.status === "checked_in" ? "check_out" : null;
-    const ownCard = canSelf ? `<section class="panel inhouse-own-card"><div class="panel-head"><div><h3>Absensi saya</h3><p>${dateLong(result.today)} · waktu dicatat otomatis oleh server · jam kerja ${escapeHtml(schedule.work_start || "09:00")}–${escapeHtml(schedule.work_end || "18:00")}</p></div>${badge(own?.status === "checked_out" ? "Sudah selesai" : own?.status === "checked_in" ? "Sedang bekerja" : "Belum absen", own?.status === "checked_out" ? "green" : own?.status === "checked_in" ? "gold" : "gray")}</div><div class="panel-body inhouse-own-body"><div><b>${escapeHtml(state.data.user.full_name)}</b><small>${escapeHtml(state.data.user.department || "In-house")}</small><div class="attendance-own-times"><span>Masuk · ${own?.check_in_at ? escapeHtml(attendanceTimeLabel(own.check_in_at)) : "belum tercatat"}</span><span>Pulang · ${own?.check_out_at ? escapeHtml(attendanceTimeLabel(own.check_out_at)) : "belum tercatat"}</span></div><div class="punctuality-row">${punctualityBadges(own, schedule)}</div></div>${action ? `<button class="button ${action === "check_in" ? "button-primary" : "button-gold"}" data-action="inhouse-attendance" data-attendance-kind="inhouse" data-attendance-action="${action}">${action === "check_in" ? "Absen masuk" : "Absen pulang"} · buka kamera</button>` : `<span class="badge badge-green">Absensi hari ini lengkap</span>`}</div></section>` : "";
+    const ownCard = renderOwnAttendance(result);
     const rows = (result.records || []).map((row) => {
       const statusLabel = row.status === "checked_out" ? ["Selesai","green"] : row.status === "checked_in" ? ["Belum absen pulang","gold"] : ["Belum absen","gray"];
       const photo = (kind,hasPhoto) => hasPhoto ? `<a href="/api/inhouse-attendance/${row.id}/photo/${kind}" target="_blank" rel="noopener">Foto</a>` : "";
-      return `<tr><td><div class="table-event"><b>${escapeHtml(row.full_name)}</b><small>${escapeHtml(row.department || "In-house")}</small></div></td><td>${badge(...statusLabel)}</td><td>${row.check_in_at ? `${escapeHtml(attendanceTimeLabel(row.check_in_at))} ${photo("check_in",row.has_check_in_photo)}` : "—"}</td><td>${row.check_out_at ? `${escapeHtml(attendanceTimeLabel(row.check_out_at))} ${photo("check_out",row.has_check_out_photo)}` : "—"}</td><td>${punctualityBadges(row, schedule) || "—"}</td></tr>`;
+      return `<tr><td><div class="table-event"><b>${escapeHtml(row.full_name)}</b><small>${escapeHtml(row.department || "In-house")}</small><small>${escapeHtml(shiftLabel(row.schedule || schedule))}</small></div></td><td>${badge(...statusLabel)}</td><td>${row.check_in_at ? `${escapeHtml(attendanceTimeLabel(row.check_in_at))} ${photo("check_in",row.has_check_in_photo)}` : "—"}</td><td>${row.check_out_at ? `${escapeHtml(attendanceTimeLabel(row.check_out_at))} ${photo("check_out",row.has_check_out_photo)}` : "—"}</td><td>${punctualityBadges(row, schedule) || "—"}</td></tr>`;
     }).join("");
     const managerPanel = result.is_manager ? `<section class="panel table-panel inhouse-manager-panel"><div class="panel-head"><div><h3>Rekap absensi In-house</h3><p>${result.records.length} akun aktif pada tanggal terpilih.</p></div></div><div class="table-toolbar"><label class="field-label">Tanggal<input class="filter-select" id="inhouse-date" type="date" value="${escapeHtml(result.selected_date)}"></label></div><div class="table-wrap"><table class="data-table"><thead><tr><th>NAMA / DEPARTEMEN</th><th>STATUS</th><th>MASUK</th><th>PULANG</th><th>KETERANGAN</th></tr></thead><tbody>${rows || `<tr><td colspan="5"><div class="empty-state">Belum ada akun In-house.</div></td></tr>`}</tbody></table></div></section>` : "";
     const exportPanel = result.is_manager ? `<section class="panel inhouse-export-panel"><div class="panel-head"><div><h3>Export rentang absensi</h3><p>Rentang inklusif untuk rekonsiliasi payroll; ekspor berisi jadwal, keterlambatan, dan pulang lebih awal untuk setiap catatan.</p></div><span class="badge badge-blue">Excel / CSV</span></div><div class="panel-body inhouse-export-controls"><label class="field-label">Dari<input class="field-input" id="inhouse-export-start" type="date" value="${escapeHtml(state.inhouseExportStart)}"></label><label class="field-label">Sampai<input class="field-input" id="inhouse-export-end" type="date" value="${escapeHtml(state.inhouseExportEnd)}"></label><div class="inhouse-export-buttons"><button class="button button-primary" data-action="export-inhouse-attendance" data-format="xlsx">Export Excel</button><button class="button button-light" data-action="export-inhouse-attendance" data-format="csv">CSV</button></div></div></section>` : "";
-    const history = canSelf ? `<section class="panel table-panel inhouse-history-panel"><div class="panel-head"><div><h3>Riwayat absensi saya</h3><p>14 hari terakhir, hanya terlihat oleh akun Anda.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>TANGGAL</th><th>STATUS</th><th>MASUK</th><th>PULANG</th><th>KETERANGAN</th></tr></thead><tbody>${(result.history || []).map((row) => `<tr><td>${escapeHtml(row.work_date)}</td><td>${badge(row.status === "checked_out" ? "Selesai" : row.status === "checked_in" ? "Belum absen pulang" : "Belum absen", row.status === "checked_out" ? "green" : row.status === "checked_in" ? "gold" : "gray")}</td><td>${row.check_in_at ? escapeHtml(attendanceTimeLabel(row.check_in_at)) : "—"}</td><td>${row.check_out_at ? escapeHtml(attendanceTimeLabel(row.check_out_at)) : "—"}</td><td>${punctualityBadges(row, schedule) || "—"}</td></tr>`).join("") || `<tr><td colspan="5"><div class="empty-state">Belum ada riwayat absensi.</div></td></tr>`}</tbody></table></div></section>` : "";
-    return `${pageHead("IN-HOUSE", "Absensi harian", "Absensi kerja kantor terpisah dari absensi event Freelancer.", `<span class="badge badge-blue">Foto wajah + waktu server</span>`)}${ownCard}${managerPanel}${exportPanel}${history}`;
+    const history = canSelf ? `<section class="panel table-panel inhouse-history-panel"><div class="panel-head"><div><h3>Riwayat absensi saya</h3><p>14 hari terakhir, hanya terlihat oleh akun Anda.</p></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>TANGGAL</th><th>STATUS</th><th>MASUK</th><th>PULANG</th><th>KETERANGAN</th></tr></thead><tbody>${(result.history || []).map((row) => `<tr><td>${escapeHtml(row.work_date)}<small class="shift-history-label">${escapeHtml(row.shift_name || "")} ${escapeHtml(row.scheduled_start || "")}–${escapeHtml(row.scheduled_end || "")}</small></td><td>${badge(row.status === "checked_out" ? "Selesai" : row.status === "checked_in" ? "Belum absen pulang" : "Belum absen", row.status === "checked_out" ? "green" : row.status === "checked_in" ? "gold" : "gray")}</td><td>${row.check_in_at ? escapeHtml(attendanceTimeLabel(row.check_in_at)) : "—"}</td><td>${row.check_out_at ? escapeHtml(attendanceTimeLabel(row.check_out_at)) : "—"}</td><td>${punctualityBadges(row, schedule) || "—"}</td></tr>`).join("") || `<tr><td colspan="5"><div class="empty-state">Belum ada riwayat absensi.</div></td></tr>`}</tbody></table></div></section>` : "";
+    return `${pageHead("IN-HOUSE", "Absensi harian", "Absensi kerja kantor terpisah dari absensi event Freelancer.", `<span class="badge badge-blue">Foto wajah + waktu server</span>`)}${ownCard}${renderShiftManager(result)}${managerPanel}${exportPanel}${history}`;
   } catch (error) { return `<div class="empty-state">${escapeHtml(error.message || "Absensi In-house tidak dapat dimuat.")}</div>`; }
 }
 
@@ -810,129 +809,171 @@ function attendanceEvidence(a) {
 }
 
 async function startAttendanceCapture(button) {
-  const kind = button.dataset.attendanceKind === "inhouse" ? "inhouse" : "event";
-  const eventId = kind === "event" ? Number(button.dataset.id) : null;
-  const assignmentId = kind === "event" ? Number(button.dataset.assignmentId) : null;
+  if (state.attendanceCapture) return;
+  const kind = button.dataset.attendanceKind === 'inhouse' ? 'inhouse' : 'event';
+  const eventId = kind === 'event' ? Number(button.dataset.id) : null;
+  const assignmentId = kind === 'event' ? Number(button.dataset.assignmentId) : null;
   const action = button.dataset.attendanceAction;
-  const assignment = kind === "event" ? state.drawer?.assignments.find((row) => row.assignment_id === assignmentId) : null;
-  const capture = { kind, eventId, assignmentId, action, workDate: button.dataset.workDate || null, personName: assignment?.full_name || state.data.user.full_name, photo: null, location: null, serverOffsetMs: 0 };
-  state.attendanceCapture = capture;
+  const assignment = kind === 'event' ? state.drawer?.assignments.find(row => row.assignment_id === assignmentId) : null;
+  const workDate = kind === 'inhouse' && action === 'check_in' ? ($('#attendance-shift-date')?.value || button.dataset.workDate) : button.dataset.workDate;
+  state.attendanceCapture = {kind, eventId, assignmentId, action, workDate: workDate || null,
+    personName: assignment?.full_name || state.data.user.full_name, photo: null, location: null};
   renderAttendanceCamera();
+  await openAttendanceCamera();
+}
+
+function cameraErrorMessage(error) {
+  if (window.isSecureContext === false) return 'Kamera dan lokasi memerlukan HTTPS. Buka alamat website dengan https:// lalu izinkan kamera dan lokasi.';
+  if (['NotAllowedError','SecurityError'].includes(error.name)) return 'Izin kamera ditolak. Izinkan kamera di pengaturan situs/browser, lalu tekan Coba kamera lagi.';
+  if (error.name === 'NotReadableError') return 'Kamera sedang digunakan aplikasi lain. Tutup aplikasi tersebut, lalu coba lagi.';
+  if (['NotFoundError','OverconstrainedError'].includes(error.name)) return 'Kamera tidak ditemukan. Sambungkan webcam atau gunakan kamera/foto perangkat.';
+  return error.message || 'Kamera tidak dapat dibuka. Periksa izin kamera browser.';
+}
+
+async function openAttendanceCamera() {
+  const capture = state.attendanceCapture;
+  if (!capture || capture.opening || capture.submitting) return;
+  capture.opening = true;
+  state.attendanceStream?.getTracks().forEach(track => track.stop()); state.attendanceStream = null;
+  $('#capture-selfie').disabled = true;
+  $('#attendance-camera-message').textContent = 'Meminta izin kamera...';
   try {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error("Browser ini tidak menyediakan akses kamera. Buka aplikasi melalui HTTPS atau localhost.");
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-    if (state.attendanceCapture !== capture) {
-      stream.getTracks().forEach((track) => track.stop());
-      return;
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Akses kamera tidak tersedia. Gunakan browser terbaru melalui HTTPS, atau kamera/foto perangkat.');
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'user'},width:{ideal:1280},height:{ideal:720}},audio:false}); }
+    catch (error) {
+      if (!['OverconstrainedError','NotFoundError'].includes(error.name)) throw error;
+      if (state.attendanceCapture !== capture) return;
+      stream = await navigator.mediaDevices.getUserMedia({video:true,audio:false});
     }
+    if (state.attendanceCapture !== capture) { stream.getTracks().forEach(track => track.stop()); return; }
     state.attendanceStream = stream;
-    const video = $("#attendance-video");
-    video.srcObject = state.attendanceStream;
+    const video = $('#attendance-video');
+    video.muted = true; video.playsInline = true; video.srcObject = stream;
     await video.play();
-    $("#capture-selfie").disabled = false;
-    $("#attendance-camera-message").textContent = "Posisikan wajah di tengah, lalu ambil foto.";
+    if (state.attendanceCapture !== capture) return;
+    $('#capture-selfie').disabled = false;
+    $('#attendance-camera-message').textContent = 'Posisikan wajah di tengah, lalu ambil foto. Izinkan lokasi saat diminta.';
   } catch (error) {
     if (state.attendanceCapture !== capture) return;
-    state.attendanceStream?.getTracks().forEach((track) => track.stop());
-    state.attendanceStream = null;
-    $("#attendance-camera-message").textContent = error.message || "Kamera tidak dapat dibuka. Periksa izin kamera browser.";
-    toast(error.message || "Kamera tidak dapat dibuka. Periksa izin kamera browser.", "error");
-  }
+    state.attendanceStream?.getTracks().forEach(track => track.stop()); state.attendanceStream = null;
+    $('#attendance-camera-message').textContent = cameraErrorMessage(error);
+  } finally { capture.opening = false; }
 }
 
 function renderAttendanceCamera() {
-  const capture = state.attendanceCapture;
-  const verb = capture.action === "check_in" ? "Check-in" : "Check-out";
-  const inhouse = capture.kind === "inhouse";
-  $("#modal-root").innerHTML = `<div class="camera-backdrop" data-action="attendance-camera-backdrop"><section class="camera-dialog" role="dialog" aria-modal="true" aria-label="Absensi dengan foto">
-    <div class="camera-dialog-head"><div><span class="eyebrow-dark">${inhouse ? "ABSENSI HARIAN IN-HOUSE" : "ABSENSI EVENT"}</span><h2>${verb} · ${escapeHtml(capture.personName)}</h2><p>${inhouse ? "Absensi kerja kantor" : escapeHtml(state.drawer?.title || "Event")}</p></div><button class="drawer-close" data-action="close-attendance-camera" aria-label="Tutup kamera">×</button></div>
+  const c = state.attendanceCapture, verb = c.action === 'check_in' ? 'Check-in' : 'Check-out';
+  $('#modal-root').innerHTML = `<div class="camera-backdrop" data-action="attendance-camera-backdrop"><section class="camera-dialog" role="dialog" aria-modal="true" aria-label="Absensi dengan foto">
+    <div class="camera-dialog-head"><div><span class="eyebrow-dark">${c.kind === 'inhouse' ? 'ABSENSI IN-HOUSE' : 'ABSENSI EVENT'}</span><h2>${verb} · ${escapeHtml(c.personName)}</h2><p>${escapeHtml(c.workDate ? `Tanggal mulai shift ${c.workDate}` : state.drawer?.title || 'Absensi kerja kantor')}</p></div><button class="drawer-close" data-action="close-attendance-camera" aria-label="Tutup kamera">×</button></div>
     <div class="camera-stage"><video id="attendance-video" autoplay playsinline muted></video><img id="attendance-preview" alt="Foto bukti absensi" hidden></div>
-    <p class="camera-guidance" id="attendance-camera-message">Meminta izin kamera...</p>
-    <p class="camera-timestamp-note">GPS wajib. Foto diberi waktu server; waktu resmi tetap dicatat server saat absensi dikirim.</p>
+    <p class="camera-guidance" id="attendance-camera-message" role="status" aria-live="polite">Meminta izin kamera...</p>
+    <p class="camera-timestamp-note">Foto wajah dan lokasi wajib. Waktu absensi dicatat oleh server. Buka melalui HTTPS dan izinkan kamera serta lokasi di laptop atau HP.</p>
+    <div class="camera-recovery" id="attendance-camera-recovery"><button class="button button-light button-small" data-action="retry-attendance-camera">Coba kamera lagi</button><label class="button button-light button-small camera-file-label" for="attendance-device-photo">Kamera / foto perangkat</label><input id="attendance-device-photo" type="file" accept="image/*" capture="user" hidden></div>
     <div class="camera-actions"><button class="button button-light" data-action="close-attendance-camera">Batal</button><button class="button button-light" id="retake-selfie" data-action="retake-selfie" hidden>Ambil ulang</button><button class="button button-primary" id="capture-selfie" data-action="capture-selfie" disabled>Ambil foto</button><button class="button button-primary" id="submit-attendance-photo" data-action="submit-attendance-photo" hidden disabled>Kirim ${verb}</button></div>
   </section></div>`;
 }
 
-async function captureAttendancePhoto() {
-  const video=$("#attendance-video");
-  const capture=state.attendanceCapture;
-  const button=$("#capture-selfie");
-  if (!capture || !video?.videoWidth || !video.videoHeight) { toast("Kamera belum siap. Coba lagi sebentar.","error"); return; }
-  button.disabled=true;
-  $("#attendance-camera-message").textContent="Mengambil lokasi GPS dan menyelaraskan jam server...";
+async function attendancePosition() {
+  if (!navigator.geolocation) throw new Error('Lokasi tidak tersedia. Buka website melalui HTTPS dan aktifkan layanan lokasi perangkat.');
+  const read = high => new Promise((resolve,reject) => navigator.geolocation.getCurrentPosition(resolve,reject,
+    {enableHighAccuracy:high,maximumAge:0,timeout:15000}));
+  try { return await read(true); }
+  catch (error) { if (error.code === 1) throw error; return await read(false); }
+}
+
+async function captureAttendancePhoto(source = null) {
+  const capture = state.attendanceCapture, video = $('#attendance-video'), button = $('#capture-selfie');
+  if (!capture || capture.capturing || capture.submitting) return;
+  const frame = source || video;
+  const frameWidth = source ? source.naturalWidth : video?.videoWidth, frameHeight = source ? source.naturalHeight : video?.videoHeight;
+  if (!frameWidth || !frameHeight) { toast('Kamera belum siap. Tunggu gambar muncul atau gunakan kamera/foto perangkat.','error'); return; }
+  capture.capturing = true; capture.photo = null; capture.location = null;
+  button.disabled = true; $('#attendance-camera-recovery').hidden = true;
+  $('#attendance-camera-message').textContent = 'Mengambil lokasi dan menyelaraskan jam server...';
   try {
-    if (!navigator.geolocation) throw new Error("Browser tidak menyediakan GPS/lokasi. Aktifkan layanan lokasi pada perangkat.");
-    const [serverTime,position]=await Promise.all([
-      api("/api/server-time"),
-      new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,maximumAge:0,timeout:25000})),
-    ]);
-    if (state.attendanceCapture!==capture) return;
-    const accuracy=Number(position.coords.accuracy);
-    if (!Number.isFinite(accuracy) || accuracy<=0 || accuracy>500) throw new Error(`GPS belum cukup akurat (±${Math.round(accuracy||0)} m). Aktifkan GPS dan coba di area lebih terbuka.`);
-    capture.serverOffsetMs=Date.parse(serverTime.timestamp)-Date.now();
-    if (!Number.isFinite(capture.serverOffsetMs)) throw new Error("Waktu server tidak dapat diselaraskan. Coba lagi.");
-    capture.location={latitude:position.coords.latitude,longitude:position.coords.longitude,accuracy_m:accuracy,
-      captured_at:new Date(position.timestamp+capture.serverOffsetMs).toISOString()};
-    const scale=Math.min(1,720/Math.max(video.videoWidth,video.videoHeight));
-    const width=Math.round(video.videoWidth*scale),height=Math.round(video.videoHeight*scale),bar=42;
-    const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height+bar;
-    const ctx=canvas.getContext("2d");ctx.drawImage(video,0,0,width,height);
-    ctx.fillStyle="rgba(20,13,31,.88)";ctx.fillRect(0,height,width,bar);
-    const capturedAt=new Date(Date.now()+capture.serverOffsetMs);
-    const label=new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false,timeZone:"Asia/Jakarta"}).format(capturedAt);
-    ctx.fillStyle="#fff";ctx.font="bold 14px Arial, sans-serif";ctx.textBaseline="middle";
-    ctx.fillText(`${capture.action==="check_in"?"CHECK-IN":"CHECK-OUT"} · ${label} WIB`,12,height+bar/2);
-    capture.photo=canvas.toDataURL("image/jpeg",.78);
-    const preview=$("#attendance-preview");preview.src=capture.photo;preview.hidden=false;video.hidden=true;
-    $("#attendance-camera-message").textContent=`GPS terkunci · akurasi ±${Math.round(accuracy)} m · periksa wajah dan timestamp.`;
-    button.hidden=true;$("#retake-selfie").hidden=false;$("#submit-attendance-photo").hidden=false;$("#submit-attendance-photo").disabled=false;
-  } catch(error) {
-    button.disabled=false;
-    $("#attendance-camera-message").textContent=error.code===1?"Izin lokasi ditolak. Izinkan lokasi browser untuk melanjutkan.":(error.message||"GPS tidak tersedia.");
-    toast($("#attendance-camera-message").textContent,"error");
+    const syncTime = async () => {
+      const sent = Date.now(); const value = await api('/api/server-time');
+      return Date.parse(value.timestamp) - (sent + Date.now()) / 2;
+    };
+    const [offset,position] = await Promise.all([syncTime(),attendancePosition()]);
+    if (state.attendanceCapture !== capture) return;
+    const accuracy = Number(position.coords.accuracy);
+    if (!Number.isFinite(accuracy) || accuracy <= 0 || accuracy > 500) throw new Error(`Lokasi belum cukup akurat (±${Math.round(accuracy || 0)} m). Aktifkan lokasi presisi; pada laptop, aktifkan Wi-Fi dan layanan lokasi, lalu coba lagi.`);
+    if (!Number.isFinite(offset)) throw new Error('Waktu server tidak dapat diselaraskan. Coba lagi.');
+    capture.location = {latitude:position.coords.latitude,longitude:position.coords.longitude,accuracy_m:accuracy,
+      captured_at:new Date(position.timestamp + offset).toISOString()};
+    const scale = Math.min(1,720 / Math.max(frameWidth,frameHeight)), width = Math.round(frameWidth*scale), height = Math.round(frameHeight*scale), bar = 42;
+    const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height+bar;
+    const ctx = canvas.getContext('2d'); ctx.drawImage(frame,0,0,width,height);
+    ctx.fillStyle = 'rgba(20,13,31,.88)'; ctx.fillRect(0,height,width,bar);
+    const label = new Intl.DateTimeFormat('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false,timeZone:'Asia/Jakarta'}).format(new Date(Date.now()+offset));
+    ctx.fillStyle = '#fff'; ctx.font = 'bold 14px Arial, sans-serif'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${capture.action === 'check_in' ? 'CHECK-IN' : 'CHECK-OUT'} · ${label} WIB`,12,height+bar/2,Math.max(1,width-24));
+    capture.photo = canvas.toDataURL('image/jpeg',.78);
+    $('#attendance-preview').src = capture.photo; $('#attendance-preview').hidden = false; video.hidden = true;
+    $('#attendance-camera-message').textContent = `Lokasi diterima · akurasi ±${Math.round(accuracy)} m. Periksa foto, lalu kirim absensi.`;
+    button.hidden = true; $('#retake-selfie').hidden = false;
+    $('#submit-attendance-photo').hidden = false; $('#submit-attendance-photo').disabled = false;
+  } catch (error) {
+    if (state.attendanceCapture !== capture) return;
+    $('#attendance-camera-message').textContent = error.code === 1 ? 'Izin lokasi ditolak. Izinkan lokasi pada browser dan perangkat, lalu ambil foto lagi.' : (error.message || 'Lokasi belum tersedia. Aktifkan Wi-Fi/GPS dan coba lagi.');
+    $('#attendance-camera-recovery').hidden = false;
+  } finally {
+    capture.capturing = false;
+    if (state.attendanceCapture === capture) button.disabled = !state.attendanceStream;
   }
 }
 
+async function useAttendanceDevicePhoto(file) {
+  const capture = state.attendanceCapture;
+  if (!capture || !file || capture.capturing || capture.submitting) return;
+  if (!file.type.startsWith('image/') || file.size > 15*1024*1024) { toast('Pilih foto gambar maksimal 15 MB.','error'); return; }
+  const url = URL.createObjectURL(file);
+  try {
+    const photo = new Image(); photo.src = url; await photo.decode();
+    if (state.attendanceCapture === capture) await captureAttendancePhoto(photo);
+  } catch { if (state.attendanceCapture === capture) toast('Foto tidak dapat dibaca. Coba foto JPEG/PNG atau kamera browser.','error'); }
+  finally { URL.revokeObjectURL(url); if (state.attendanceCapture === capture) $('#attendance-device-photo').value = ''; }
+}
+
 function retakeAttendancePhoto() {
-  if (!state.attendanceCapture) return;
-  state.attendanceCapture.photo = null;
-  $("#attendance-preview").hidden = true;
-  $("#attendance-video").hidden = false;
-  $("#capture-selfie").hidden = false;
-  $("#retake-selfie").hidden = true;
-  $("#submit-attendance-photo").hidden = true;
+  const capture = state.attendanceCapture;
+  if (!capture || capture.capturing || capture.submitting) return;
+  capture.photo = null; capture.location = null;
+  $('#attendance-preview').hidden = true; $('#attendance-video').hidden = false;
+  $('#capture-selfie').hidden = false; $('#capture-selfie').disabled = !state.attendanceStream;
+  $('#retake-selfie').hidden = true; $('#submit-attendance-photo').hidden = true;
+  $('#submit-attendance-photo').disabled = true; $('#attendance-camera-recovery').hidden = false;
+  $('#attendance-camera-message').textContent = 'Ambil kembali foto wajah Anda.';
 }
 
 function closeAttendanceCamera() {
-  const kind = state.attendanceCapture?.kind;
-  state.attendanceStream?.getTracks().forEach((track) => track.stop());
-  state.attendanceStream = null;
-  state.attendanceCapture = null;
+  if (state.attendanceCapture?.submitting) return;
+  state.attendanceStream?.getTracks().forEach(track => track.stop());
+  state.attendanceStream = null; state.attendanceCapture = null;
+  $('#modal-root').innerHTML = '';
   if (state.drawer) renderDrawer();
-  else if (kind === "inhouse") renderPage();
-  else $("#modal-root").innerHTML = "";
 }
 
 async function submitAttendancePhoto() {
   const capture = state.attendanceCapture;
-  if (!capture?.photo) return;
-  const button = $("#submit-attendance-photo");
-  button.disabled = true;
-  button.innerHTML = `<span class="spinner"></span> Mengirim`;
+  if (!capture?.photo || !capture.location || capture.submitting) return;
+  capture.submitting = true;
+  const button = $('#submit-attendance-photo'); button.disabled = true; button.textContent = 'Mengirim...';
   try {
-    const endpoint = capture.kind === "inhouse" ? "/api/inhouse-attendance" : `/api/events/${capture.eventId}/attendance`;
-    const body = capture.kind === "inhouse" ? { action: capture.action, photo: capture.photo, location: capture.location } : { assignment_id: capture.assignmentId, action: capture.action, photo: capture.photo, location: capture.location, ...(capture.workDate ? { work_date: capture.workDate } : {}) };
-    const result = await api(endpoint, { method: "POST", body: JSON.stringify(body) });
-    const base = `${capture.action === "check_in" ? "Check-in" : "Check-out"} tercatat ${attendanceTimeLabel(result.timestamp)}.`;
-    if (result.punctuality) toast(`${base} ${result.punctuality} (jadwal ${result.scheduled}).`, "error");
-    else toast(base);
-    closeAttendanceCamera();
-    await refreshData();
+    const endpoint = capture.kind === 'inhouse' ? '/api/inhouse-attendance' : `/api/events/${capture.eventId}/attendance`;
+    const body = {action:capture.action,photo:capture.photo,location:capture.location,
+      ...(capture.workDate ? {work_date:capture.workDate} : {}), ...(capture.kind === 'event' ? {assignment_id:capture.assignmentId} : {})};
+    const result = await api(endpoint,{method:'POST',body:JSON.stringify(body)});
+    const base = `${capture.action === 'check_in' ? 'Check-in' : 'Check-out'} tercatat ${attendanceTimeLabel(result.timestamp)}.`;
+    toast(result.punctuality ? `${base} ${result.punctuality} (jadwal ${result.scheduled}).` : base);
   } catch (error) {
-    button.disabled = false;
-    button.textContent = `Kirim ${capture.action === "check_in" ? "Check-in" : "Check-out"}`;
-    toast(error.message || "Foto absensi gagal dikirim.", "error");
+    capture.submitting = false;
+    if (state.attendanceCapture === capture) { button.disabled = false; button.textContent = `Kirim ${capture.action === 'check_in' ? 'Check-in' : 'Check-out'}`; }
+    toast(error.message || 'Foto absensi gagal dikirim.','error'); return;
   }
+  capture.submitting = false; closeAttendanceCamera();
+  try { await refreshData(); } catch { toast('Absensi sudah tersimpan. Muat ulang halaman untuk melihat status terbaru.','error'); }
 }
 
 function drawerTabs() {
@@ -1109,9 +1150,10 @@ async function runAction(element) {
       await api("/api/configure/roles", { method: "POST", body: JSON.stringify({ role: element.dataset.role, reset_default: true }) });
       toast("Hak akses role dikembalikan ke default."); await refreshData(); return;
     }
-    if (action === "open-event") { await openEvent(element.dataset.id); return; }
+    if (action === "open-event") { if (element.matches(".kanban-card") && Date.now() < (state.designSuppressClickUntil || 0)) return; await openEvent(element.dataset.id, element.dataset.tab); return; }
     if (action === "close-drawer") { openEventSequence++;state.drawer = null; $("#modal-root").innerHTML = ""; return; }
     if (action === "close-attendance-camera" || action === "attendance-camera-backdrop") { closeAttendanceCamera(); return; }
+    if (action === "retry-attendance-camera") { await openAttendanceCamera(); return; }
     if (action === "capture-selfie") { await captureAttendancePhoto(); return; }
     if (action === "retake-selfie") { retakeAttendancePhoto(); return; }
     if (action === "submit-attendance-photo") { await submitAttendancePhoto(); return; }
@@ -1651,6 +1693,7 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("change", async (event) => {
+  if (event.target.id === "attendance-device-photo") { await useAttendanceDevicePhoto(event.target.files[0]); return; }
   if (event.target.id === "payslip-year") { state.payslipYear=event.target.value; renderPage(); }
   if (event.target.id === "profile-photo-file" && event.target.files?.[0]) {
     const file = event.target.files[0];
@@ -1721,9 +1764,14 @@ document.addEventListener("change", async (event) => {
 document.addEventListener("dragstart", (event) => {
   const card = event.target.closest(".kanban-card");
   if (!card || !has("design.update")) return;
+  state.designSuppressClickUntil = Date.now() + 60000;
   state.designDragId = Number(card.dataset.taskId);
   event.dataTransfer.effectAllowed = "move";
   event.dataTransfer.setData("text/plain", String(state.designDragId));
+});
+document.addEventListener("dragend", () => {
+  state.designDragId = null; state.designSuppressClickUntil = Date.now() + 250;
+  $$(".kanban-column.drag-over").forEach(column => column.classList.remove("drag-over"));
 });
 document.addEventListener("dragover", (event) => {
   const column = event.target.closest(".kanban-column");
@@ -1749,6 +1797,9 @@ $("#logout-button").addEventListener("click", openLogoutDialog);
 $("#mobile-menu").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
 document.addEventListener("keydown", (event) => {
   if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); $("#global-search").focus(); }
+  const designCard = event.target.closest?.('.kanban-card[data-action="open-event"]');
+  if (designCard && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); runAction(designCard); return; }
+  if (event.key === 'Escape' && state.attendanceCapture) { closeAttendanceCamera(); return; }
   if (event.key === "Escape" && state.drawer && !$("#logout-dialog").open && $("#notification-panel").hidden) { state.drawer = null; $("#modal-root").innerHTML = ""; }
 });
 

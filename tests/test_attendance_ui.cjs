@@ -55,3 +55,28 @@ test('design: staff only see status badges for their own cards',()=>{
   c.has=p=>['design.read','design.read_all'].includes(p);   // Head Design / managers
   assert.equal(c.canSeeDesignStatus({design_assignee_id:2}),true);
 });
+
+test('punctuality uses the original shift tolerance after the default changes',()=>{
+  const c=load();
+  assert.match(c.punctualityBadges({late_minutes:8,late_grace_minutes:10},{late_grace_minutes:0}),/Tepat waktu/);
+  assert.match(c.punctualityBadges({late_minutes:8,late_grace_minutes:0},{late_grace_minutes:15}),/Terlambat 8 menit/);
+});
+
+test('overnight own card sends the start date and exposes eligible dates after midnight',()=>{
+  const c=load();Object.assign(c,{badge:(text)=>text,attendanceTimeLabel:s=>s});
+  c.state.data.user={id:1,employment_type:'inhouse',full_name:'Tester'};
+  const schedule={shift_name:'Malam',work_start:'22:00',work_end:'06:00',overnight:true};
+  const result={today:'2041-05-13',own_today:{work_date:'2041-05-12',status:'checked_in'},own_schedule:schedule};
+  const html=c.renderOwnAttendance(result);
+  assert.match(html,/data-work-date="2041-05-12"/);assert.match(html,/data-attendance-action="check_out"/);
+  assert.match(html,/menutup shift tanggal 2041-05-12/);assert.match(html,/\(\+1 hari\)/);
+  result.own_today.status='not_started';result.checkin_options=[{...schedule,work_date:'2041-05-12'},{...schedule,work_date:'2041-05-13'}];
+  assert.match(c.renderOwnAttendance(result),/id="attendance-shift-date"/);
+  c.has=()=>false;assert.equal(c.renderOwnAttendance(result),'');
+});
+
+test('shift scheduler appears only with permission from the server',()=>{
+  const c=load();
+  assert.equal(c.renderShiftManager({can_schedule:false}), '');
+  assert.match(c.renderShiftManager({can_schedule:true,today:'2041-05-12',schedule:{work_start:'09:00',work_end:'18:00'},shift_employees:[],shift_roster:[]}),/id="inhouse-shift-form"/);
+});
