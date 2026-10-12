@@ -25,6 +25,9 @@ const state = {
   eventMonth: null,
   queueMonth: null,
   eventStatus: "all",
+  salesPipelineId: null,
+  salesDragId: null,
+  prefillDeliverySpkId: "",
 };
 
 const $ = (selector, root = document) => root.querySelector(selector);
@@ -196,6 +199,10 @@ function navGroups() {
   if (p.includes("events.read_all") || p.includes("events.read_own")) groups[1].items.push({ id: "events", label: "Jadwal Event", icon: "▦", count: state.data.dashboard.total_upcoming });
   if (p.includes("events.project_code.manage") || p.includes("events.assign")) groups[1].items.push({ id: "crm-queue", label: "Kode CRM", icon: "◫", count: (state.data.calendar_code_queue || []).length || null });
   if (p.includes("events.assign")) groups[1].items.push({ id: "vehicles", label: "Transportasi Event", icon: "▱" });
+  if (p.includes("sales.read_own") || p.includes("sales.read_all") || p.includes("sales.manage_own") || p.includes("sales.manage_all")) groups[1].items.push({ id: "sales-board", label: "Sales Pipeline", icon: "▥", count: state.data.dashboard.sales_open || null });
+  if (p.includes("sales.dashboard")) groups[1].items.push({ id: "sales-dashboard", label: "Dashboard Sales", icon: "▤" });
+  if (p.includes("delivery_orders.read") || p.includes("delivery_orders.manage")) groups[1].items.push({ id: "delivery-orders", label: "Surat Jalan", icon: "▧", count: state.data.dashboard.delivery_released || null });
+  if (p.includes("inventory.read") || p.includes("inventory.scan") || p.includes("inventory.manage")) groups[1].items.push({ id: "inventory", label: "Inventory", icon: "▣", count: state.data.dashboard.inventory_low || null });
   if (p.includes("design.read")) groups[1].items.push({ id: "design", label: "Board Design", icon: "✳", count: state.data.dashboard.design_active || null });
   if (p.includes("warehouse.update")) groups[1].items.push({ id: "warehouse", label: "Kesiapan Alat", icon: "▣", count: state.data.dashboard.warehouse_pending || null });
   if (p.includes("advances.read") || p.includes("advances.request")) groups[2].items.push({ id: "advances", label: "Uang Jalan", icon: "↗", count: state.data.dashboard.needs_advance || null });
@@ -249,6 +256,10 @@ function renderPage() {
     case "vehicles": updatePageTitle("Transportasi Event"); host.innerHTML = renderVehiclesPage(); break;
     case "events": updatePageTitle("Jadwal Event"); host.innerHTML = renderEventsPage(); break;
     case "crm-queue": updatePageTitle("Kode CRM"); host.innerHTML = renderCrmQueuePage(); break;
+    case "sales-board": updatePageTitle("Sales Pipeline"); host.innerHTML = renderSalesBoardPage(); break;
+    case "sales-dashboard": updatePageTitle("Dashboard Sales"); host.innerHTML = renderSalesDashboardPage(); break;
+    case "inventory": updatePageTitle("Inventory"); host.innerHTML = renderInventoryPage(); break;
+    case "delivery-orders": updatePageTitle("Surat Jalan"); host.innerHTML = renderDeliveryOrdersPage(); break;
     case "design": updatePageTitle("Board Design"); host.innerHTML = renderDesignPage(); break;
     case "warehouse": updatePageTitle("Kesiapan Alat"); host.innerHTML = renderWarehousePage(); break;
     case "advances": updatePageTitle("Uang Jalan"); host.innerHTML = renderAdvancesPage(); break;
@@ -716,7 +727,7 @@ function renderConfigureRoles() {
     const key = permission.code.split(".")[0];
     (grouped[key] ||= []).push(permission);
   }
-  const labels = { events: "Jadwal & event", attendance: "Absensi", advances: "Uang jalan", warehouse: "Gudang", design: "Desain", payroll: "Penggajian", fees: "Tarif", skills: "Skill", kpi: "KPI & evaluasi", users: "Pengguna", app: "Konfigurasi", profile: "Profil", staff: "Data Crew/PIC", google: "Google Calendar" };
+  const labels = { events: "Jadwal & event", attendance: "Absensi", advances: "Uang jalan", warehouse: "Gudang", design: "Desain", payroll: "Penggajian", fees: "Tarif", skills: "Skill", kpi: "KPI & evaluasi", users: "Pengguna", app: "Konfigurasi", profile: "Profil", staff: "Data Crew/PIC", google: "Google Calendar", sales: "Sales", inventory: "Inventory", delivery_orders: "Surat jalan" };
   const locked = new Set(["users.manage","app.configure"]);
   return `<div class="configure-section-head"><div><h2>Pengaturan role</h2><p>Atur izin tiap role; perubahan diperiksa di server.</p></div><span class="badge badge-gold">${selected.customized ? "Kustom" : "Default"}</span></div>
     <section class="panel role-select-panel"><label class="field-label">Pilih role<select class="field-select" id="configure-role-select">${roles.filter((role) => role.code !== "administrator").map((role) => `<option value="${role.code}" ${role.code === selected.code ? "selected" : ""}>${escapeHtml(role.name)}</option>`).join("")}</select></label><p>Hak akses Administrator dikunci agar selalu tersedia untuk pemulihan sistem dan pengelolaan konfigurasi.</p></section>
@@ -1144,6 +1155,7 @@ async function runAction(element) {
   const action = element.dataset.action;
   try {
     if (action === "navigate") { setPage(element.dataset.page); return; }
+    if (window.handleSalesInventoryAction && await window.handleSalesInventoryAction(action, element)) return;
     if (action === "configure-tab") { state.configureTab = element.dataset.tab; renderPage(); return; }
     if (action === "reset-role-default") {
       if (!window.confirm("Kembalikan hak akses role ini ke pengaturan default?")) return;

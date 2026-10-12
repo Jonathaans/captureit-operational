@@ -39,6 +39,7 @@ from compensation import append_change, change_reason, effective_date, history_p
 import notification_center as notices
 import push_delivery
 import attendance_shifts as shifts
+import sales_inventory
 
 
 ROOT = Path(__file__).resolve().parent
@@ -124,6 +125,17 @@ PERMISSION_DESCRIPTIONS = {
     "staff.directory.read": "Melihat direktori Crew/PIC",
     "staff.documents.read": "Melihat dokumen KTP Crew/PIC",
     "google.sync": "Menarik jadwal dari Google Calendar",
+    "sales.read_own": "Melihat lead dan dokumen sales milik sendiri",
+    "sales.read_all": "Melihat seluruh lead dan dokumen sales",
+    "sales.manage_own": "Membuat dan mengubah lead sales milik sendiri",
+    "sales.manage_all": "Membuat dan mengubah seluruh lead sales",
+    "sales.pipeline.manage": "Mengatur pipeline sales",
+    "sales.dashboard": "Melihat dashboard admin sales",
+    "inventory.read": "Melihat dashboard dan daftar inventory",
+    "inventory.manage": "Mengatur master inventory dan asset",
+    "inventory.scan": "Scan keluar/masuk barang inventory",
+    "delivery_orders.read": "Melihat surat jalan",
+    "delivery_orders.manage": "Membuat dan merilis surat jalan",
 }
 
 PROFILE_PERMISSIONS = {"profile.read_own", "profile.update_own"}
@@ -143,6 +155,7 @@ ROLE_PERMISSIONS = {
         "warehouse.update", "design.read", "design.assign", "payroll.view", "fees.manage",
         "skills.manage", "kpi.evaluate_operations", "kpi.read", "google.sync",
         "staff.directory.read", "staff.documents.read",
+        "sales.read_all", "sales.dashboard", "inventory.read", "inventory.scan", "delivery_orders.read", "delivery_orders.manage",
     },
     "event_coordinator": {
         "events.read_all", "events.assign", "events.clear", "events.whatsapp.manage", "events.export_own", "attendance.manage", "attendance.correct", "advances.read",
@@ -154,25 +167,27 @@ ROLE_PERMISSIONS = {
         "advances.documents.read_all",
         "payroll.view", "payroll.export", "fees.manage", "kpi.evaluate_finance", "attendance.inhouse.read_all", "attendance.inhouse.self",
         "inhouse_payroll.view", "inhouse_payroll.manage", "inhouse_payroll.read_own",
-        "skills.manage", "kpi.read", "google.sync",
+        "skills.manage", "kpi.read", "google.sync", "sales.read_all", "sales.dashboard",
     },
     "finance": {
         "events.read_all", "advances.read", "advances.approve", "advances.transfer",
         "advances.documents.read_all",
         "payroll.view", "payroll.export", "kpi.evaluate_finance", "kpi.read", "attendance.inhouse.read_all", "attendance.inhouse.self",
-        "inhouse_payroll.view", "inhouse_payroll.manage", "inhouse_payroll.read_own",
+        "inhouse_payroll.view", "inhouse_payroll.manage", "inhouse_payroll.read_own", "sales.read_all",
     },
     "admin_finance": {
         "events.read_all", "advances.read", "kpi.read_own", "attendance.inhouse.read_all", "attendance.inhouse.self",
         "advances.documents.read_all",
         "inhouse_payroll.read_own",
     },
-    "warehouse_head": {"events.read_all", "warehouse.update", "attendance.inhouse.self", "inhouse_payroll.read_own"},
-    "warehouse_staff": {"events.read_all", "warehouse.update", "attendance.inhouse.self", "inhouse_payroll.read_own"},
+    "warehouse_head": {"events.read_all", "warehouse.update", "attendance.inhouse.self", "inhouse_payroll.read_own",
+                       "inventory.read", "inventory.manage", "inventory.scan", "delivery_orders.read", "delivery_orders.manage"},
+    "warehouse_staff": {"events.read_all", "warehouse.update", "attendance.inhouse.self", "inhouse_payroll.read_own",
+                        "inventory.read", "inventory.scan", "delivery_orders.read"},
     "design_head": {"events.read_all", "design.read", "design.read_all", "design.update", "design.assign",
                     "attendance.inhouse.self", "inhouse_payroll.read_own"},
     "design_team": {"events.read_all", "design.read", "design.update", "attendance.inhouse.self", "inhouse_payroll.read_own"},
-    "sales_staff": {"attendance.inhouse.self", "inhouse_payroll.read_own"},
+    "sales_staff": {"attendance.inhouse.self", "inhouse_payroll.read_own", "sales.read_own", "sales.manage_own", "delivery_orders.read"},
     "content_team": {"attendance.inhouse.self", "inhouse_payroll.read_own"},
     "inhouse_employee": {"attendance.inhouse.self", "inhouse_payroll.read_own"},
     "crew": {"events.read_own", "attendance.self", "kpi.read_own", "payroll.read_own"},
@@ -482,6 +497,7 @@ def audit(conn: sqlite3.Connection, actor_id: int | None, entity_type: str, enti
 
 def seed_reference_data(conn: sqlite3.Connection) -> None:
     conn.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
+    sales_inventory.seed_reference_data(conn)
     design_columns = {r['name'] for r in conn.execute('PRAGMA table_info(design_tasks)')}
     for name, definition in {'brief_text': "TEXT NOT NULL DEFAULT ''", 'brief_version': 'INTEGER NOT NULL DEFAULT 0',
                              'brief_sent_at': 'TEXT', 'brief_sent_by': 'INTEGER REFERENCES users(id) ON DELETE SET NULL',
@@ -652,6 +668,7 @@ def seed_demo(conn: sqlite3.Connection) -> None:
         ("Sinta Lestari", "admin.finance@captureit.local", "admin_finance"),
         ("Bima Saputra", "warehouse.head@captureit.local", "warehouse_head"),
         ("Riko Pratama", "warehouse@captureit.local", "warehouse_staff"),
+        ("Vina Sales", "sales@captureit.local", "sales_staff"),
         ("Maya Anindya", "design@captureit.local", "design_team"),
         ("Dimas Ardi", "crew@captureit.local", "crew"),
         ("Raka Putra", "pic@captureit.local", "pic_event"),
@@ -754,6 +771,45 @@ def seed_demo(conn: sqlite3.Connection) -> None:
     }
     for email, (scores, note) in demo_performance.items():
         insert_event_performance_review(conn, assignment_id[(5, email)], uid["coordinator@captureit.local"], scores, note)
+    pipeline = conn.execute("SELECT id FROM sales_pipelines WHERE is_default=1 ORDER BY id LIMIT 1").fetchone()
+    if pipeline:
+        stage_ids = {row["code"]: row["id"] for row in conn.execute("SELECT id,code FROM sales_stages WHERE pipeline_id=?", (pipeline["id"],))}
+        lead_data = [
+            ("lead", "PT Mentari Event", "Dina", "Mentari Expo 2026", "2026-10-25", "Balai Kartini", 45000000, "Instagram"),
+            ("quote", "Senayan City", "Bu Vina", "Fashion Nation Booth", "2026-11-12", "Senayan City", 95000000, "Repeat client"),
+            ("spk", "P&G Indonesia", "Kristina", "Corporate Activation", "2026-10-03", "The Langham, Jakarta", 125000000, "CRM lama"),
+        ]
+        demo_lead_ids = []
+        for stage_code, client, contact, event_name, event_date, venue, value, source in lead_data:
+            cur = conn.execute("""INSERT INTO sales_leads(pipeline_id,stage_id,owner_id,client_name,contact_name,event_name,event_date,venue,
+                source,estimated_value_rupiah,status,created_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (pipeline["id"],stage_ids[stage_code],uid["sales@captureit.local"],client,contact,event_name,event_date,venue,source,value,
+                 "won" if stage_code=="spk" else "open",uid["sales@captureit.local"],now_iso()))
+            demo_lead_ids.append(cur.lastrowid)
+        conn.execute("""INSERT INTO sales_documents(lead_id,kind,document_no,amount_rupiah,status,issued_at,created_by,updated_at)
+            VALUES(?,?,?,?,?,?,?,?)""", (demo_lead_ids[-1],"spk","SPK-DEMO-26001",125000000,"approved","2026-09-25",uid["sales@captureit.local"],now_iso()))
+    warehouse_location = conn.execute("SELECT id FROM inventory_locations WHERE name='Gudang Utama'").fetchone()["id"]
+    inventory_seed = [
+        ("PB-360-001", "PB-360-001", "Photobooth 360 Set", "Photobooth", "asset", "set", 1, 1),
+        ("PRN-DS620-001", "PRN-DS620-001", "Printer DNP DS620", "Printer", "asset", "unit", 1, 1),
+        ("RBN-4X6", "RBN-4X6", "Ribbon 4x6", "Consumable", "inventory", "roll", 5, 24),
+    ]
+    item_ids = {}
+    for sku, barcode, name, category, kind, unit, minimum, qty in inventory_seed:
+        item_ids[sku] = conn.execute("""INSERT OR IGNORE INTO inventory_items(sku,barcode,name,category,kind,unit,min_quantity,created_by,updated_at)
+            VALUES(?,?,?,?,?,?,?,?,?)""", (sku,barcode,name,category,kind,unit,minimum,uid["warehouse.head@captureit.local"],now_iso())).lastrowid
+        row = conn.execute("SELECT id FROM inventory_items WHERE sku=?", (sku,)).fetchone()
+        item_ids[sku] = row["id"]
+        conn.execute("""INSERT INTO inventory_movements(item_id,location_id,direction,quantity,scan_code,notes,created_by,created_at)
+            VALUES(?,?,?,?,?,?,?,?)""", (row["id"],warehouse_location,"adjustment_in",qty,sku,"Stok awal demo",uid["warehouse.head@captureit.local"],now_iso()))
+    spk = conn.execute("SELECT id,lead_id FROM sales_documents WHERE document_no='SPK-DEMO-26001'").fetchone()
+    if spk:
+        do_id = conn.execute("""INSERT INTO delivery_orders(event_id,lead_id,spk_document_id,number,status,recipient_name,destination,
+            released_by,released_at,created_by,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+            (1,spk["lead_id"],spk["id"],"SJ-DEMO-26001","released","Crew Event","The Langham, Jakarta",
+             uid["warehouse.head@captureit.local"],now_iso(),uid["warehouse.head@captureit.local"],now_iso())).lastrowid
+        for sku, qty in (("PB-360-001",1),("PRN-DS620-001",1),("RBN-4X6",4)):
+            conn.execute("INSERT INTO delivery_order_items(delivery_order_id,item_id,planned_quantity) VALUES(?,?,?)", (do_id,item_ids[sku],qty))
     audit(conn, uid["admin@captureit.local"], "system", None, "demo_seeded", {"events": len(events)})
 
 
@@ -1187,6 +1243,13 @@ def event_detail(conn: sqlite3.Connection, event_id: int, viewer_id: int, can_re
     approved_design = conn.execute("SELECT final_url FROM design_tasks WHERE event_id=? AND status='approved' ORDER BY id LIMIT 1", (event_id,)).fetchone()
     result['approved_design_url'] = approved_design['final_url'] if approved_design else ''
     _, viewer_permissions = role_data(conn, viewer_id)
+    if viewer_permissions & {"delivery_orders.read", "delivery_orders.manage"}:
+        result["delivery_orders"] = [dict(row) for row in conn.execute("""
+            SELECT id,number,status,recipient_name,destination,released_at
+            FROM delivery_orders WHERE event_id=? ORDER BY created_at DESC,id DESC
+        """, (event_id,)).fetchall()]
+    else:
+        result["delivery_orders"] = []
     if viewer_permissions & {'design.read', 'design.update'}:
         task = conn.execute('SELECT * FROM design_tasks WHERE event_id=? ORDER BY id LIMIT 1', (event_id,)).fetchone()
         result['design_task'] = dict(task) if task else None
@@ -1296,6 +1359,9 @@ def staff_directory(conn: sqlite3.Connection, viewer: dict) -> list[dict]:
 def dashboard_data(conn: sqlite3.Connection, user: dict, events: list[dict]) -> dict:
     today = datetime.now(WIB).date()
     upcoming = [e for e in events if e["status"] == "scheduled" and local_datetime(e["starts_at"]).date() >= today]
+    sales = sales_inventory.sales_payload(conn, user)
+    inventory = sales_inventory.inventory_payload(conn, user)
+    deliveries = sales_inventory.delivery_payload(conn, user)
     return {
         "total_upcoming": len(upcoming),
         "needs_advance": sum(e["advance_status"] in {"submitted", "approved"} for e in upcoming) if "advances.read" in user["permissions"] else 0,
@@ -1304,6 +1370,9 @@ def dashboard_data(conn: sqlite3.Connection, user: dict, events: list[dict]) -> 
                          if "design.read" in user["permissions"] else 0,
         "warehouse_pending": sum(e["warehouse_status"] in {"needs_prep", "preparing", "waiting_return", "issue"} for e in upcoming) if "warehouse.update" in user["permissions"] else 0,
         "checked_events": sum(e["status"] == "completed" for e in events),
+        "sales_open": sales["dashboard"]["open_leads"] if sales else 0,
+        "inventory_low": len(inventory["low_stock"]) if inventory else 0,
+        "delivery_released": sum(1 for row in deliveries["orders"] if row["status"] in {"released", "out"}) if deliveries else 0,
     }
 
 
@@ -1419,6 +1488,9 @@ def bootstrap_payload(conn: sqlite3.Connection, user: dict) -> dict:
         "performance_criteria": [{"code": code, "name": name} for code, name in PERFORMANCE_CRITERIA],
         "google_configured": google_configured(),
         "google_sync": google_sync_status(conn) if "google.sync" in user["permissions"] else None,
+        "sales": sales_inventory.sales_payload(conn, user),
+        "inventory": sales_inventory.inventory_payload(conn, user),
+        "delivery_orders": sales_inventory.delivery_payload(conn, user),
     }
 
 
@@ -2066,6 +2138,20 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_push_action(user, parsed.path, payload)
             elif parsed.path == "/api/vehicles":
                 self.handle_vehicle_save(user,payload)
+            elif parsed.path == "/api/sales/pipelines":
+                self.handle_sales_pipeline_save(user, payload)
+            elif parsed.path == "/api/sales/leads":
+                self.handle_sales_lead_save(user, payload)
+            elif re.fullmatch(r"/api/sales/leads/\d+/stage", parsed.path):
+                self.handle_sales_lead_stage(user, int(parsed.path.split("/")[4]), payload)
+            elif parsed.path == "/api/sales/documents":
+                self.handle_sales_document_save(user, payload)
+            elif parsed.path == "/api/inventory/items":
+                self.handle_inventory_item_save(user, payload)
+            elif parsed.path == "/api/inventory/scan":
+                self.handle_inventory_scan(user, payload)
+            elif parsed.path == "/api/delivery-orders":
+                self.handle_delivery_order_save(user, payload)
             elif re.fullmatch(r"/api/events/\d+/logistics",parsed.path):
                 self.handle_logistics_save(user,int(parsed.path.split("/")[3]),payload)
             elif re.fullmatch(r"/api/events/\d+/closing",parsed.path):
@@ -2953,6 +3039,59 @@ class Handler(SimpleHTTPRequestHandler):
                 vehicle_id=conn.execute("INSERT INTO vehicles(name,plate_number,ownership,vendor_name,active,updated_at) VALUES(?,?,?,?,?,?)",args).lastrowid
             audit(conn,user["id"],"vehicle",vehicle_id,"updated" if raw_id else "created",values)
         self.json_response({"ok":True,"id":vehicle_id})
+
+    def handle_sales_pipeline_save(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.save_pipeline(conn, user, payload)
+            audit(conn, user["id"], "sales_pipeline", result["id"], "saved", {"name": payload.get("name", "")})
+        self.json_response(result)
+
+    def handle_sales_lead_save(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.save_lead(conn, user, payload)
+            audit(conn, user["id"], "sales_lead", result["id"], "saved", {"client_name": payload.get("client_name", "")})
+        self.json_response(result)
+
+    def handle_sales_lead_stage(self, user: dict, lead_id: int, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.move_lead(conn, user, lead_id, payload)
+            audit(conn, user["id"], "sales_lead", lead_id, "stage_changed",
+                  {"stage_id": result.get("stage_id"), "status": result.get("status")})
+        self.json_response(result)
+
+    def handle_sales_document_save(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.save_document(conn, user, payload)
+            audit(conn, user["id"], "sales_document", result["id"], "saved",
+                  {"lead_id": payload.get("lead_id"), "kind": payload.get("kind")})
+        self.json_response(result)
+
+    def handle_inventory_item_save(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.save_item(conn, user, payload)
+            audit(conn, user["id"], "inventory_item", result["id"], "saved", {"sku": payload.get("sku", "")})
+        self.json_response(result)
+
+    def handle_inventory_scan(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.scan_inventory(conn, user, payload)
+            audit(conn, user["id"], "inventory_movement", result["id"], "scanned",
+                  {"item_id": result.get("item_id"), "direction": payload.get("direction"), "quantity": payload.get("quantity")})
+        self.json_response(result)
+
+    def handle_delivery_order_save(self, user: dict, payload: dict) -> None:
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            result = sales_inventory.save_delivery_order(conn, user, payload)
+            audit(conn, user["id"], "delivery_order", result["id"], "saved",
+                  {"number": result.get("number"), "status": result.get("status")})
+        self.json_response(result)
 
     def handle_logistics_save(self, user: dict, event_id: int, payload: dict) -> None:
         self.require(user,"events.assign")

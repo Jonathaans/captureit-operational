@@ -1,0 +1,210 @@
+.sales-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.sales-summary-strip > div {
+  background: #fff;
+  border: 1px solid #ebe7f3;
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.sales-summary-strip b {
+  display: block;
+  color: var(--purple-dark);
+  font-size: 20px;
+}
+.sales-summary-strip span {
+  color: #81768f;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.sales-pipeline-select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #71677d;
+  font-size: 12px;
+  font-weight: 700;
+}
+.sales-kanban .sales-stage-column {
+  min-width: 280px;
+  background: #f7f5fb;
+  border: 1px solid #ebe7f3;
+  border-radius: 8px;
+  padding: 12px;
+}
+.sales-kanban-card {
+  display: block;
+  background: #fff;
+  border: 1px solid #e8e1f4;
+  border-radius: 8px;
+  padding: 13px;
+  margin-top: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(33, 18, 59, .06);
+}
+.sales-kanban-card h4 {
+  margin: 7px 0 5px;
+  color: var(--purple-dark);
+}
+.sales-kanban-card p {
+  margin: 0;
+  color: #746a82;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.sales-card-value {
+  margin-top: 10px;
+  font-weight: 800;
+  color: var(--purple);
+}
+.sales-stage-column.drag-over {
+  outline: 2px solid var(--purple);
+  outline-offset: 2px;
+}
+.sales-empty-column {
+  margin-top: 10px;
+  padding: 26px 8px;
+  font-size: 10px;
+}
+.sales-drawer {
+  width: min(820px, 96vw);
+}
+.sales-grid-form,
+.sales-doc-form,
+.inventory-scan-form,
+.inventory-item-form,
+.delivery-order-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.sales-full {
+  grid-column: 1 / -1;
+}
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.sales-doc-panel {
+  margin-top: 18px;
+  border-top: 1px solid #eee8f5;
+  padding-top: 16px;
+}
+.sales-doc-list {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.sales-doc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid #ebe7f3;
+  border-radius: 8px;
+  padding: 10px;
+}
+.sales-doc-row span,
+.delivery-card small,
+.delivery-item-pick small {
+  display: block;
+  color: #8a8096;
+  font-size: 11px;
+}
+.inventory-scan-panel,
+.delivery-form-panel {
+  margin-bottom: 16px;
+}
+.inventory-scan-form {
+  grid-template-columns: 1.2fr .8fr .5fr 1fr 1fr auto;
+  align-items: end;
+}
+.inventory-item-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+}
+.delivery-order-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.delivery-item-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 280px;
+  overflow: auto;
+  border: 1px solid #ebe7f3;
+  border-radius: 8px;
+  padding: 10px;
+  background: #faf9fc;
+}
+.delivery-item-pick {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 86px;
+  gap: 10px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #eee8f5;
+  border-radius: 8px;
+  padding: 9px;
+  font-weight: 700;
+}
+.delivery-item-pick input {
+  width: 100%;
+}
+.release-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #5f536c;
+  font-weight: 700;
+}
+.delivery-list {
+  display: grid;
+  gap: 10px;
+}
+.delivery-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  background: #fff;
+  border: 1px solid #ebe7f3;
+  border-radius: 8px;
+  padding: 14px;
+}
+.delivery-card b {
+  color: var(--purple-dark);
+}
+.delivery-items {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #5f536c;
+  font-size: 12px;
+}
+.delivery-items span {
+  background: #f7f5fb;
+  border-radius: 999px;
+  padding: 5px 9px;
+}
+@media (max-width: 900px) {
+  .sales-summary-strip,
+  .sales-grid-form,
+  .sales-doc-form,
+  .inventory-scan-form,
+  .inventory-item-form,
+  .delivery-order-form,
+  .delivery-item-grid {
+    grid-template-columns: 1fr;
+  }
+  .sales-doc-row,
+  .delivery-card {
+    grid-template-columns: 1fr;
+  }
+}
+
