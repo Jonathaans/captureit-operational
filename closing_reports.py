@@ -16,6 +16,12 @@ def can_review_closing(user, event):
         event['coordinator_id'] == user['id'] or 'users.manage' in user['permissions'])
 
 
+def event_time_finished(event):
+    end = datetime.fromisoformat(event['ends_at'].replace('Z', '+00:00'))
+    if end.tzinfo is None: end = end.replace(tzinfo=WIB)
+    return datetime.now(timezone.utc) >= end
+
+
 def is_event_pic(conn, event_id, user_id):
     return bool(conn.execute("SELECT 1 FROM event_assignments WHERE event_id=? AND user_id=? AND assignment_type='pic'",
                              (event_id, user_id)).fetchone())
@@ -42,8 +48,10 @@ def closing_detail(conn, event, user):
         photo['url'] = f"/api/closing-photos/{photo['id']}"
     report['history'] = [dict(r) for r in conn.execute('''SELECT h.action,h.note,h.version,h.created_at,u.full_name actor_name
         FROM event_closing_history h LEFT JOIN users u ON u.id=h.actor_id WHERE h.event_id=? ORDER BY h.id DESC''', (event['id'],))]
-    report['can_edit'] = event['status'] == 'scheduled' and report['status'] in EDITABLE | {'not_started'} and can_read_closing(conn, event['id'], user) and is_event_pic(conn, event['id'], user['id'])
-    report['can_review'] = event['status'] == 'scheduled' and report['status'] == 'submitted' and can_review_closing(user, event)
+    report['event_finished'] = event_time_finished(event)
+    report['can_edit'] = event['status'] != 'cancelled' and report['status'] in EDITABLE | {'not_started'} and can_read_closing(conn, event['id'], user) and is_event_pic(conn, event['id'], user['id'])
+    report['can_submit'] = report['can_edit'] and report['event_finished']
+    report['can_review'] = event['status'] != 'cancelled' and report['status'] == 'submitted' and can_review_closing(user, event)
     report['can_clear'] = event['status'] == 'scheduled' and report['status'] == 'accepted' and can_review_closing(user, event)
     return report
 
@@ -143,8 +151,10 @@ def save_closing(conn, event, user, payload, parse_image):
     action = payload.get('action')
     if action not in {'draft', 'submit', 'accept', 'revise'}:
         raise ValueError('Aksi laporan tidak valid.')
-    if event['status'] != 'scheduled':
-        raise ValueError('Laporan event yang sudah clear atau dibatalkan tidak dapat diubah.')
+    if event['status'] == 'cancelled':
+        raise ValueError('Laporan event yang dibatalkan tidak dapat diubah.')
+    if action == 'submit' and not event_time_finished(event):
+        raise ValueError('Laporan dapat dikirim setelah jam selesai event. Simpan draft terlebih dahulu.')
     if action in {'draft', 'submit'}:
         if not can_read_closing(conn, event['id'], user):
             raise PermissionError('Akun ini tidak memiliki akses ke laporan event.')

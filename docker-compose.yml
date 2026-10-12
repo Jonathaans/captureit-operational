@@ -1,6 +1,9 @@
 services:
   captureit-ops:
-    build: .
+    build:
+      context: .
+      args:
+        OPS_BUILD_REVISION: ${OPS_BUILD_REVISION:-development}
     restart: unless-stopped
     stop_grace_period: 30s
     mem_limit: 512m

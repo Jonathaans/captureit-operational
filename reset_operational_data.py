@@ -28,6 +28,7 @@ TABLES_TO_CLEAR = (
     "audit_logs",
     "sessions",
     "inventory_movements",
+    "inventory_assets",
     "delivery_order_items",
     "delivery_orders",
     "sales_documents",
@@ -108,6 +109,8 @@ def main() -> int:
         before = {table: table_count(conn, table) for table in TABLES_TO_CLEAR}
         conn.execute("BEGIN IMMEDIATE")
         try:
+            if "source_document_id" in {row[1] for row in conn.execute("PRAGMA table_info(sales_documents)")}:
+                conn.execute("UPDATE sales_documents SET source_document_id=NULL")
             for table in TABLES_TO_CLEAR:
                 conn.execute(f'DELETE FROM "{table}"')
             violations = conn.execute("PRAGMA foreign_key_check").fetchall()
