@@ -23,7 +23,7 @@ function runtime(instant='2026-09-30T05:00:00Z') {
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   };
   c.window=c;vm.createContext(c);
-  for(const file of ['draft-store.js','closing-ui.js','multiday-ui.js','attendance-ui.js','staffing-ui.js','compensation-ui.js','push-ui.js','design-ui.js','operations-ui.js','app.js']) {
+  for(const file of ['draft-store.js','closing-ui.js','multiday-ui.js','attendance-ui.js','staffing-ui.js','compensation-ui.js','push-ui.js','design-ui.js','operations-ui.js','sales-inventory-ui.js','app.js']) {
     let source=fs.readFileSync(path.join(root,'static',file),'utf8');
     if(file==='app.js')source=source.replace(/api\("\/api\/branding"\)\.then\(applyBranding\)\.catch\(\(\) => \{\}\);\s*loadApp\(\);\s*$/,'');
     vm.runInContext(source,c,{filename:file});
@@ -34,7 +34,8 @@ function runtime(instant='2026-09-30T05:00:00Z') {
 const pages={dashboard:'renderDashboard',events:'renderEventsPage','crm-queue':'renderCrmQueuePage',vehicles:'renderVehiclesPage',design:'renderDesignPage',
   warehouse:'renderWarehousePage',advances:'renderAdvancesPage',payroll:'renderPayrollPage','inhouse-payroll':'renderInhousePayrollPage',
   'inhouse-payslips':'renderInhousePayslipsPage','inhouse-attendance':'renderInhouseAttendancePage',rates:'renderRatesPage',
-  kpi:'renderKpiPage',staff:'renderStaffDirectoryPage',profile:'renderProfilePage',configure:'renderConfigurePage'};
+  kpi:'renderKpiPage',staff:'renderStaffDirectoryPage',profile:'renderProfilePage',configure:'renderConfigurePage',
+  'sales-board':'renderSalesBoardPage','sales-dashboard':'renderSalesDashboardPage',inventory:'renderInventoryPage','delivery-orders':'renderDeliveryOrdersPage'};
 
 for(const fixture of fixtures) test(`real HTTP data renders every visible page and event tab: ${fixture.role}`,async()=>{
   const {c,state}=runtime();state.data=structuredClone(fixture.bootstrap);

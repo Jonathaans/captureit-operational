@@ -474,6 +474,133 @@ CREATE TABLE IF NOT EXISTS warehouse_checks (
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS sales_pipelines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    is_default INTEGER NOT NULL DEFAULT 0 CHECK (is_default IN (0,1)),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_sales_pipeline_default ON sales_pipelines(is_default) WHERE is_default=1;
+
+CREATE TABLE IF NOT EXISTS sales_stages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pipeline_id INTEGER NOT NULL REFERENCES sales_pipelines(id) ON DELETE CASCADE,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL CHECK (position > 0),
+    locked INTEGER NOT NULL DEFAULT 1 CHECK (locked IN (0,1)),
+    UNIQUE(pipeline_id, code),
+    UNIQUE(pipeline_id, position)
+);
+
+CREATE TABLE IF NOT EXISTS sales_leads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pipeline_id INTEGER NOT NULL REFERENCES sales_pipelines(id) ON DELETE RESTRICT,
+    stage_id INTEGER NOT NULL REFERENCES sales_stages(id) ON DELETE RESTRICT,
+    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    client_name TEXT NOT NULL,
+    contact_name TEXT NOT NULL DEFAULT '',
+    contact_phone TEXT NOT NULL DEFAULT '',
+    contact_email TEXT NOT NULL DEFAULT '',
+    event_name TEXT NOT NULL,
+    event_date TEXT NOT NULL DEFAULT '',
+    venue TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT '',
+    estimated_value_rupiah INTEGER NOT NULL DEFAULT 0 CHECK (estimated_value_rupiah >= 0),
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','won','lost')),
+    notes TEXT NOT NULL DEFAULT '',
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_sales_leads_owner_stage ON sales_leads(owner_id,stage_id,status);
+CREATE INDEX IF NOT EXISTS idx_sales_leads_pipeline_stage ON sales_leads(pipeline_id,stage_id,status);
+
+CREATE TABLE IF NOT EXISTS sales_documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lead_id INTEGER NOT NULL REFERENCES sales_leads(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('quote','proforma','invoice','spk')),
+    document_no TEXT NOT NULL,
+    amount_rupiah INTEGER NOT NULL DEFAULT 0 CHECK (amount_rupiah >= 0),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','sent','approved','paid','cancelled')),
+    issued_at TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(lead_id, kind, document_no)
+);
+CREATE INDEX IF NOT EXISTS idx_sales_documents_lead_kind ON sales_documents(lead_id,kind,created_at);
+
+CREATE TABLE IF NOT EXISTS inventory_locations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1))
+);
+
+CREATE TABLE IF NOT EXISTS inventory_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sku TEXT NOT NULL UNIQUE,
+    barcode TEXT UNIQUE,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL DEFAULT 'inventory' CHECK (kind IN ('inventory','asset')),
+    unit TEXT NOT NULL DEFAULT 'pcs',
+    min_quantity INTEGER NOT NULL DEFAULT 0 CHECK (min_quantity >= 0),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_kind ON inventory_items(kind,active,name);
+
+CREATE TABLE IF NOT EXISTS delivery_orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+    lead_id INTEGER REFERENCES sales_leads(id) ON DELETE SET NULL,
+    spk_document_id INTEGER REFERENCES sales_documents(id) ON DELETE SET NULL,
+    number TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','released','out','returned','cancelled')),
+    recipient_name TEXT NOT NULL DEFAULT '',
+    destination TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    released_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    released_at TEXT,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_delivery_orders_event ON delivery_orders(event_id,status);
+CREATE INDEX IF NOT EXISTS idx_delivery_orders_lead ON delivery_orders(lead_id,status);
+
+CREATE TABLE IF NOT EXISTS delivery_order_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    delivery_order_id INTEGER NOT NULL REFERENCES delivery_orders(id) ON DELETE CASCADE,
+    item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE RESTRICT,
+    planned_quantity INTEGER NOT NULL CHECK (planned_quantity > 0),
+    notes TEXT NOT NULL DEFAULT '',
+    UNIQUE(delivery_order_id,item_id)
+);
+
+CREATE TABLE IF NOT EXISTS inventory_movements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE RESTRICT,
+    location_id INTEGER REFERENCES inventory_locations(id) ON DELETE SET NULL,
+    event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+    delivery_order_id INTEGER REFERENCES delivery_orders(id) ON DELETE SET NULL,
+    direction TEXT NOT NULL CHECK (direction IN ('in','out','return','adjustment_in','adjustment_out')),
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    scan_code TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(item_id,created_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_delivery ON inventory_movements(delivery_order_id,item_id);
+
 CREATE TABLE IF NOT EXISTS design_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_id INTEGER NOT NULL REFERENCES events(id) ON DELETE CASCADE,

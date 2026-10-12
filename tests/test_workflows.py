@@ -216,6 +216,117 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("events.clear", permissions)
         self.assertIn("kpi.evaluate_crew", permissions)
 
+    def test_sales_pipeline_is_owner_scoped_and_spk_creates_document(self):
+        sales = self.client("sales@captureit.local")
+        admin = self.client("admin@captureit.local")
+        status, _, body = sales.request("/api/bootstrap")
+        self.assertEqual(status, 200)
+        sales_data = json.loads(body)["sales"]
+        self.assertIsNotNone(sales_data)
+        self.assertGreaterEqual(len(sales_data["leads"]), 3)
+        self.assertEqual(sales_data["sales_people"], [])
+        pipeline_id = sales_data["pipelines"][0]["id"]
+        stages = {row["code"]: row["id"] for row in sales_data["stages"] if row["pipeline_id"] == pipeline_id}
+
+        status, _, body = sales.request("/api/sales/leads", "POST", {
+            "pipeline_id": pipeline_id,
+            "stage_id": stages["lead"],
+            "client_name": "Owner Scoped Client",
+            "event_name": "Owner Scoped Event",
+            "event_date": "2026-12-01",
+            "estimated_value_rupiah": 15000000,
+        })
+        self.assertEqual(status, 200, body.decode())
+        lead_id = json.loads(body)["id"]
+        status, _, body = sales.request(f"/api/sales/leads/{lead_id}/stage", "POST", {"stage_id": stages["quote"]})
+        self.assertEqual(status, 200, body.decode())
+        status, _, body = sales.request("/api/sales/documents", "POST", {
+            "lead_id": lead_id,
+            "kind": "spk",
+            "document_no": "SPK-OWNER-SCOPED-26001",
+            "amount_rupiah": 15000000,
+            "status": "approved",
+            "issued_at": "2026-10-12",
+        })
+        self.assertEqual(status, 200, body.decode())
+        with ops.get_db() as conn:
+            row = conn.execute("SELECT status,stage_id FROM sales_leads WHERE id=?", (lead_id,)).fetchone()
+            spk_stage = conn.execute("SELECT id FROM sales_stages WHERE pipeline_id=? AND code='spk'", (pipeline_id,)).fetchone()["id"]
+        self.assertEqual(row["status"], "won")
+        self.assertEqual(row["stage_id"], spk_stage)
+
+        admin_data = json.loads(admin.request("/api/bootstrap")[2])
+        owner_id = admin_data["user"]["id"]
+        status, _, body = admin.request("/api/sales/leads", "POST", {
+            "pipeline_id": pipeline_id,
+            "stage_id": stages["lead"],
+            "owner_id": owner_id,
+            "client_name": "Admin Only Client",
+            "event_name": "Admin Only Event",
+        })
+        self.assertEqual(status, 200, body.decode())
+        admin_lead_id = json.loads(body)["id"]
+        self.assertEqual(sales.request(f"/api/sales/leads/{admin_lead_id}/stage", "POST", {"stage_id": stages["quote"]})[0], 403)
+        visible = json.loads(sales.request("/api/bootstrap")[2])["sales"]["leads"]
+        self.assertNotIn(admin_lead_id, {row["id"] for row in visible})
+
+    def test_inventory_scan_and_delivery_order_link_stock_to_surat_jalan(self):
+        warehouse = self.client("warehouse.head@captureit.local")
+        status, _, body = warehouse.request("/api/inventory/items", "POST", {
+            "sku": "TEST-LENS-001",
+            "barcode": "TEST-LENS-001",
+            "name": "Test Lens",
+            "category": "Camera",
+            "kind": "asset",
+            "unit": "unit",
+            "initial_quantity": 2,
+            "min_quantity": 1,
+        })
+        self.assertEqual(status, 200, body.decode())
+        item_id = json.loads(body)["id"]
+        status, _, body = warehouse.request("/api/delivery-orders", "POST", {
+            "event_id": self.event_id("CI-OPS-26001"),
+            "recipient_name": "Crew Test",
+            "destination": "Venue Test",
+            "release": True,
+            "items": [{"item_id": item_id, "planned_quantity": 1}],
+        })
+        self.assertEqual(status, 200, body.decode())
+        delivery = json.loads(body)
+        self.assertEqual(delivery["status"], "released")
+        status, _, body = warehouse.request("/api/inventory/scan", "POST", {
+            "scan_code": "TEST-LENS-001",
+            "direction": "out",
+            "quantity": 1,
+            "delivery_order_id": delivery["id"],
+        })
+        self.assertEqual(status, 200, body.decode())
+        self.assertEqual(json.loads(body)["stock_on_hand"], 1)
+        self.assertEqual(warehouse.request("/api/inventory/scan", "POST", {
+            "scan_code": "TEST-LENS-001",
+            "direction": "out",
+            "quantity": 2,
+            "delivery_order_id": delivery["id"],
+        })[0], 400)
+        status, _, body = warehouse.request("/api/inventory/scan", "POST", {
+            "scan_code": "TEST-LENS-001",
+            "direction": "return",
+            "quantity": 1,
+            "delivery_order_id": delivery["id"],
+        })
+        self.assertEqual(status, 200, body.decode())
+        self.assertEqual(json.loads(body)["stock_on_hand"], 2)
+
+        payload = json.loads(warehouse.request("/api/bootstrap")[2])
+        linked = [row for row in payload["delivery_orders"]["items"] if row["delivery_order_id"] == delivery["id"]]
+        self.assertEqual(linked[0]["out_quantity"], 1)
+        self.assertEqual(linked[0]["returned_quantity"], 1)
+        self.assertEqual(self.client("sales@captureit.local").request("/api/inventory/scan", "POST", {
+            "scan_code": "TEST-LENS-001",
+            "direction": "out",
+            "quantity": 1,
+        })[0], 403)
+
     def test_user_profiles_ktp_privacy_and_staff_directory(self):
         crew = self.client("naya@captureit.local")
         coordinator = self.client("coordinator@captureit.local")

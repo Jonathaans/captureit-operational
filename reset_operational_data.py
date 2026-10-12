@@ -27,6 +27,11 @@ TABLES_TO_CLEAR = (
     "kpi_reviews",
     "audit_logs",
     "sessions",
+    "inventory_movements",
+    "delivery_order_items",
+    "delivery_orders",
+    "sales_documents",
+    "sales_leads",
     "calendar_code_queue",
     "events",
 )
@@ -44,6 +49,10 @@ TABLES_TO_KEEP = (
     "compensation_history",
     "inhouse_salary_rates",
     "skills",
+    "sales_pipelines",
+    "sales_stages",
+    "inventory_locations",
+    "inventory_items",
     "schema_migrations",
 )
 
