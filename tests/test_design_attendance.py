@@ -293,7 +293,7 @@ class InhousePunctualityTests(Base):
                 self.assertEqual(get("Keterangan"), "Terlambat 65 menit · Pulang lebih awal 59 menit")
             else:
                 sheet = zipfile.ZipFile(io.BytesIO(raw)).read("xl/worksheets/sheet1.xml").decode()
-                self.assertIn("Terlambat 65 menit · Pulang lebih awal 59 menit", sheet); self.assertIn('ref="A1:T2"', sheet)
+                self.assertIn("Terlambat 65 menit · Pulang lebih awal 59 menit", sheet); self.assertIn('ref="A1:V2"', sheet)
                 self.assertIn("Pulang lebih awal (menit)", sheet)
 
     def test_old_records_without_schedule_data_export_without_inventing_numbers(self):

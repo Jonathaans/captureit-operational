@@ -10,7 +10,7 @@ WORKDIR /app
 COPY requirements-push.txt requirements-server.txt ./
 RUN pip install --no-cache-dir -r requirements-push.txt -r requirements-server.txt
 RUN useradd --system --uid 10001 --create-home ops && mkdir -p /data && chown ops:ops /data
-COPY --chown=ops:ops server.py operations.py closing_reports.py staffing.py eventdays.py compensation.py notification_center.py push_delivery.py schema.sql reset_operational_data.py ./
+COPY --chown=ops:ops server.py operations.py closing_reports.py staffing.py eventdays.py compensation.py notification_center.py push_delivery.py attendance_shifts.py schema.sql reset_operational_data.py ./
 COPY --chown=ops:ops production.py backup.py ./
 COPY --chown=ops:ops static ./static
 COPY --chown=ops:ops templates ./templates

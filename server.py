@@ -38,6 +38,7 @@ import eventdays
 from compensation import append_change, change_reason, effective_date, history_payload, migrate_history, salary_at
 import notification_center as notices
 import push_delivery
+import attendance_shifts as shifts
 
 
 ROOT = Path(__file__).resolve().parent
@@ -92,6 +93,7 @@ PERMISSION_DESCRIPTIONS = {
     "attendance.correct": "Mengoreksi absensi crew yang terlewat (hanya Event Coordinator dan Head Operations)",
     "attendance.inhouse.self": "Mengisi absensi harian In-house sendiri",
     "attendance.inhouse.read_all": "Melihat absensi harian seluruh tim In-house",
+    "attendance.inhouse.schedule": "Mengatur jadwal shift harian karyawan In-house",
     "inhouse_payroll.view": "Melihat penggajian bulanan In-house",
     "inhouse_payroll.manage": "Mengatur gaji pokok dan mencatat transfer payroll In-house",
     "inhouse_payroll.read_own": "Melihat slip gaji In-house sendiri",
@@ -135,6 +137,7 @@ FEE_RESTRICTED_ROLES = {"admin_finance", "sales_staff", "admin_sales"}
 ROLE_PERMISSIONS = {
     "administrator": set(PERMISSION_DESCRIPTIONS),
     "head_operations": {
+        "attendance.inhouse.schedule",
         "events.read_all", "events.assign", "events.whatsapp.manage", "attendance.manage", "attendance.correct", "advances.read",
         "attendance.inhouse.read_all", "attendance.inhouse.self", "inhouse_payroll.read_own",
         "warehouse.update", "design.read", "design.assign", "payroll.view", "fees.manage",
@@ -531,6 +534,7 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
             sql_type="REAL" if column.endswith(("latitude","longitude","accuracy_m")) else "TEXT"
             conn.execute(f"ALTER TABLE inhouse_attendance ADD COLUMN {column} {sql_type}")
     inhouse_now = {row["name"] for row in conn.execute("PRAGMA table_info(inhouse_attendance)").fetchall()}
+    shifts.migrate(conn)
     for column, sql_type in (("scheduled_start", "TEXT"), ("scheduled_end", "TEXT"),
                              ("late_minutes", "INTEGER"), ("early_leave_minutes", "INTEGER")):
         if column not in inhouse_now:
@@ -1514,8 +1518,8 @@ def validate_inhouse_schedule(payload: dict) -> dict:
             raise ValueError(f"{label} harus antara 0 dan 120 menit.")
         return number
     start, end = clock("work_start", "Jam masuk"), clock("work_end", "Jam pulang")
-    if end <= start:
-        raise ValueError("Jam pulang harus setelah jam masuk.")
+    if end == start:
+        raise ValueError("Jam masuk dan jam pulang tidak boleh sama. Untuk shift malam, jam pulang dihitung pada hari berikutnya.")
     return {"work_start": start, "work_end": end,
             "late_grace_minutes": grace("late_grace_minutes", "Toleransi terlambat"),
             "early_grace_minutes": grace("early_grace_minutes", "Toleransi pulang awal")}
@@ -1546,16 +1550,18 @@ def inhouse_attendance_rows(conn: sqlite3.Connection, start: str, end: str) -> l
     return [dict(row) for row in conn.execute("""SELECT a.work_date,u.full_name,u.email,u.department,a.status,a.check_in_at,a.check_out_at,
         a.check_in_latitude,a.check_in_longitude,a.check_in_accuracy_m,a.check_out_latitude,a.check_out_longitude,a.check_out_accuracy_m,
         a.scheduled_start,a.scheduled_end,a.late_minutes,a.early_leave_minutes,
+        a.shift_name,a.scheduled_end_at,a.late_grace_minutes,a.early_grace_minutes,
         CASE WHEN a.check_in_photo_path IS NOT NULL THEN 'Ya' ELSE 'Tidak' END AS check_in_photo,
         CASE WHEN a.check_out_photo_path IS NOT NULL THEN 'Ya' ELSE 'Tidak' END AS check_out_photo
         FROM inhouse_attendance a JOIN users u ON u.id=a.user_id
-        WHERE u.active=1 AND u.employment_type='inhouse' AND a.work_date>=? AND a.work_date<?
+        WHERE a.work_date>=? AND a.work_date<?
         ORDER BY a.work_date,u.department,u.full_name""", (start_date,end_exclusive)).fetchall()]
 
 
 INHOUSE_EXPORT_HEADERS = ["Tanggal", "Nama", "Email", "Departemen", "Status", "Jadwal masuk", "Check-in (WIB)", "Terlambat (menit)",
                           "Jadwal pulang", "Check-out (WIB)", "Pulang lebih awal (menit)", "Keterangan", "Foto masuk", "Foto pulang",
-                          "GPS masuk latitude", "GPS masuk longitude", "Akurasi masuk (m)", "GPS pulang latitude", "GPS pulang longitude", "Akurasi pulang (m)"]
+                          "GPS masuk latitude", "GPS masuk longitude", "Akurasi masuk (m)", "GPS pulang latitude", "GPS pulang longitude", "Akurasi pulang (m)",
+                          "Shift", "Jadwal selesai (WIB)"]
 
 
 def inhouse_export_row(row: dict, schedule: dict) -> list:
@@ -1565,9 +1571,11 @@ def inhouse_export_row(row: dict, schedule: dict) -> list:
     return [row["work_date"], row["full_name"], row["email"], row["department"], status,
             row.get("scheduled_start") or "", payroll_timestamp_wib(row["check_in_at"]), late if late is not None else "",
             row.get("scheduled_end") or "", payroll_timestamp_wib(row["check_out_at"]), early if early is not None else "",
-            punctuality_note(late, early, schedule["late_grace_minutes"], schedule["early_grace_minutes"]),
+            punctuality_note(late, early, row.get("late_grace_minutes") if row.get("late_grace_minutes") is not None else schedule["late_grace_minutes"],
+                             row.get("early_grace_minutes") if row.get("early_grace_minutes") is not None else schedule["early_grace_minutes"]),
             row["check_in_photo"], row["check_out_photo"], row["check_in_latitude"], row["check_in_longitude"], row["check_in_accuracy_m"],
-            row["check_out_latitude"], row["check_out_longitude"], row["check_out_accuracy_m"]]
+            row["check_out_latitude"], row["check_out_longitude"], row["check_out_accuracy_m"],
+            row.get("shift_name") or "", payroll_timestamp_wib(row.get("scheduled_end_at"))]
 
 
 def make_inhouse_attendance_xlsx(rows: list[dict], schedule: dict | None = None) -> bytes:
@@ -2124,6 +2132,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_attendance(user, int(parsed.path.split("/")[3]), payload)
             elif parsed.path == "/api/settings/inhouse-schedule":
                 self.handle_inhouse_schedule_update(user, payload)
+            elif parsed.path == "/api/inhouse-shifts":
+                self.handle_inhouse_shift_update(user, payload)
             elif parsed.path == "/api/events/manual":
                 self.handle_manual_event_create(user, payload)
             elif re.fullmatch(r"/api/events/\d+/delete-manual", parsed.path):
@@ -2461,83 +2471,158 @@ class Handler(SimpleHTTPRequestHandler):
             self.json_error(HTTPStatus.BAD_REQUEST,str(exc))
 
     def handle_inhouse_attendance_list(self, user: dict, query: dict) -> None:
-        is_manager="attendance.inhouse.read_all" in user["permissions"]
-        is_self=user["employment_type"]=="inhouse" and "attendance.inhouse.self" in user["permissions"]
-        if not is_manager and not is_self: raise PermissionError("Akun ini tidak memiliki akses absensi In-house.")
-        today=wib_now().date().isoformat()
-        selected=query.get("date",[today])[0]
-        try: date.fromisoformat(selected)
+        is_manager = "attendance.inhouse.read_all" in user["permissions"]
+        can_schedule = "attendance.inhouse.schedule" in user["permissions"]
+        is_self = user["employment_type"] == "inhouse" and "attendance.inhouse.self" in user["permissions"]
+        if not (is_manager or is_self or can_schedule):
+            raise PermissionError("Akun ini tidak memiliki akses absensi In-house.")
+        now = wib_now(); today = now.date().isoformat()
+        selected = query.get("date", [today])[0]
+        try: selected = date.fromisoformat(selected).isoformat()
         except ValueError as exc: raise ValueError("Tanggal absensi tidak valid.") from exc
         with get_db() as conn:
-            own=None; history=[]
+            default = inhouse_schedule(conn)
+            own = None; history = []; options = []; own_schedule = default
             if is_self:
-                own=conn.execute("SELECT * FROM inhouse_attendance WHERE user_id=? AND work_date=?",(user["id"],today)).fetchone()
-                own=dict(own) if own else {"id":None,"user_id":user["id"],"work_date":today,"status":"not_started","check_in_at":None,"check_out_at":None,"has_check_in_photo":False,"has_check_out_photo":False}
-                start=(date.fromisoformat(today)-timedelta(days=13)).isoformat()
-                history=[dict(row) for row in conn.execute("""SELECT id,user_id,work_date,status,check_in_at,check_out_at,
-                    check_in_photo_path IS NOT NULL AS has_check_in_photo,check_out_photo_path IS NOT NULL AS has_check_out_photo,
-                    check_in_latitude,check_in_longitude,check_in_accuracy_m,check_out_latitude,check_out_longitude,check_out_accuracy_m,
-                    scheduled_start,scheduled_end,late_minutes,early_leave_minutes
-                    FROM inhouse_attendance WHERE user_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date DESC""",(user["id"],start,today)).fetchall()]
-            rows=[]; schedule=inhouse_schedule(conn)
-            if is_manager:
-                rows=[dict(row) for row in conn.execute("""SELECT a.id,u.id user_id,u.full_name,u.department,? work_date,
-                    COALESCE(a.status,'not_started') status,a.check_in_at,a.check_out_at,
-                    COALESCE(a.check_in_photo_path IS NOT NULL,0) has_check_in_photo,
-                    COALESCE(a.check_out_photo_path IS NOT NULL,0) has_check_out_photo,
-                    a.check_in_latitude,a.check_in_longitude,a.check_in_accuracy_m,a.check_out_latitude,a.check_out_longitude,a.check_out_accuracy_m,
-                    a.scheduled_start,a.scheduled_end,a.late_minutes,a.early_leave_minutes
-                    FROM users u LEFT JOIN inhouse_attendance a ON a.user_id=u.id AND a.work_date=?
-                    WHERE u.active=1 AND u.employment_type='inhouse' ORDER BY u.department,u.full_name""",(selected,selected)).fetchall()]
-        self.json_response({"today":today,"selected_date":selected,"own_today":own,"records":rows,"history":history,"is_manager":is_manager,
-            "schedule":schedule})
+                active = shifts.open_record(conn, user["id"])
+                options = [] if active else shifts.checkin_options(conn, user["id"], now, default)
+                current = active or conn.execute("SELECT * FROM inhouse_attendance WHERE user_id=? AND work_date=?", (user["id"], today)).fetchone()
+                # A remaining eligible shift takes precedence over a completed record.
+                if active:
+                    own = shifts.public_record(active)
+                    own_schedule = shifts.record_schedule(active, shifts.schedule_for(conn, user["id"], active["work_date"], default))
+                elif options:
+                    own_schedule = options[0]
+                    own = {"id": None, "user_id": user["id"], "work_date": own_schedule["work_date"], "status": "not_started"}
+                elif current:
+                    own = shifts.public_record(current)
+                    own_schedule = shifts.record_schedule(current, shifts.schedule_for(conn, user["id"], current["work_date"], default))
+                start = (now.date() - timedelta(days=13)).isoformat()
+                history = [shifts.public_record(row) for row in conn.execute("""SELECT * FROM inhouse_attendance
+                    WHERE user_id=? AND work_date BETWEEN ? AND ? ORDER BY work_date DESC""", (user["id"], start, today))]
+            rows = []; people = []; roster = []
+            if is_manager or can_schedule:
+                people = [dict(row) for row in conn.execute("SELECT id,full_name,department FROM users WHERE active=1 AND employment_type='inhouse' ORDER BY department,full_name")]
+                for person in people:
+                    schedule = shifts.schedule_for(conn, person["id"], selected, default)
+                    if can_schedule:
+                        roster.append({**schedule, "user_id": person["id"], "full_name": person["full_name"]})
+                    if is_manager:
+                        record = conn.execute("SELECT * FROM inhouse_attendance WHERE user_id=? AND work_date=?", (person["id"], selected)).fetchone()
+                        row = shifts.public_record(record) if record else {"id": None, "user_id": person["id"], "work_date": selected,
+                            "status": "not_started", "check_in_at": None, "check_out_at": None}
+                        row.update(full_name=person["full_name"], department=person["department"],
+                                   schedule=shifts.record_schedule(record, schedule) if record else schedule)
+                        rows.append(row)
+        self.json_response({"today": today, "selected_date": selected, "own_today": own, "records": rows,
+            "history": history, "is_manager": is_manager, "can_schedule": can_schedule,
+            "schedule": default, "own_schedule": own_schedule, "checkin_options": options,
+            "shift_employees": people if can_schedule else [], "shift_roster": roster})
 
-    def handle_inhouse_attendance(self,user: dict,payload: dict) -> None:
-        self.require(user,"attendance.inhouse.self")
-        if user["employment_type"]!="inhouse": raise PermissionError("Hanya akun In-house yang dapat mengisi absensi kantor.")
-        action=payload.get("action")
-        if action not in {"check_in","check_out"}: raise ValueError("Tindakan absensi tidak dikenal.")
-        photo=parse_attendance_photo(payload.get("photo")); location=parse_attendance_location(payload.get("location")); saved=None
+    def handle_inhouse_attendance(self, user: dict, payload: dict) -> None:
+        self.require(user, "attendance.inhouse.self")
+        if user["employment_type"] != "inhouse":
+            raise PermissionError("Hanya akun In-house yang dapat mengisi absensi kantor.")
+        action = payload.get("action")
+        if action not in {"check_in", "check_out"}: raise ValueError("Tindakan absensi tidak dikenal.")
+        photo = parse_attendance_photo(payload.get("photo"))
+        location = parse_attendance_location(payload.get("location")); saved = None
         try:
-            today=wib_now().date().isoformat()
-            with DB_LOCK,get_db() as conn:
+            now_wib = wib_now()
+            with DB_LOCK, get_db() as conn:
                 conn.execute("BEGIN IMMEDIATE")
-                conn.execute("INSERT OR IGNORE INTO inhouse_attendance(user_id,work_date) VALUES(?,?)",(user["id"],today))
-                current=conn.execute("SELECT * FROM inhouse_attendance WHERE user_id=? AND work_date=?",(user["id"],today)).fetchone()
-                stamp=now_iso();lat,lon,accuracy,_=location
-                saved=store_inhouse_attendance_photo(user["id"],action,photo)
-                schedule=inhouse_schedule(conn); now_wib=wib_now()
-                late=early=None
-                if action=="check_in":
-                    if current["status"]!="not_started": raise ValueError("Absensi masuk hari ini sudah tercatat.")
-                    late=max(0,int((now_wib-scheduled_moment(today,schedule["work_start"])).total_seconds()//60))
-                    changed=conn.execute("""UPDATE inhouse_attendance SET status='checked_in',check_in_at=?,check_in_photo_path=?,
-                        check_in_latitude=?,check_in_longitude=?,check_in_accuracy_m=?,scheduled_start=?,late_minutes=?,updated_at=?
-                        WHERE id=? AND status='not_started'""",
-                        (stamp,saved,lat,lon,accuracy,schedule["work_start"],late,stamp,current["id"]))
+                default = inhouse_schedule(conn)
+                active = shifts.open_record(conn, user["id"])
+                late = early = None
+                if action == "check_in":
+                    if active: raise ValueError("Absen pulang untuk shift sebelumnya terlebih dahulu.")
+                    options = shifts.checkin_options(conn, user["id"], now_wib, default)
+                    work_date = str(payload.get("work_date") or (options[0]["work_date"] if options else ""))
+                    schedule = next((s for s in options if s["work_date"] == work_date), None)
+                    if not schedule: raise ValueError("Absensi masuk sudah tercatat atau tanggal shift tidak tersedia. Muat ulang halaman.")
+                    conn.execute("INSERT OR IGNORE INTO inhouse_attendance(user_id,work_date) VALUES(?,?)", (user["id"], work_date))
+                    current = conn.execute("SELECT * FROM inhouse_attendance WHERE user_id=? AND work_date=?", (user["id"], work_date)).fetchone()
+                    late = max(0, int((now_wib - datetime.fromisoformat(schedule["scheduled_start_at"])).total_seconds() // 60))
                 else:
-                    if current["status"]!="checked_in": raise ValueError("Lakukan check-in terlebih dahulu atau check-out sudah tercatat.")
-                    early=max(0,int((scheduled_moment(today,schedule["work_end"])-now_wib).total_seconds()//60))
-                    changed=conn.execute("""UPDATE inhouse_attendance SET status='checked_out',check_out_at=?,check_out_photo_path=?,
-                        check_out_latitude=?,check_out_longitude=?,check_out_accuracy_m=?,scheduled_end=?,early_leave_minutes=?,updated_at=?
-                        WHERE id=? AND status='checked_in'""",
-                        (stamp,saved,lat,lon,accuracy,schedule["work_end"],early,stamp,current["id"]))
-                if changed.rowcount!=1: raise ValueError("Absensi sudah diproses. Muat ulang halaman untuk melihat status terbaru.")
-                audit(conn,user["id"],"inhouse_attendance",current["id"],action,{"work_date":today,"timestamp":stamp,
-                    "latitude":lat,"longitude":lon,"accuracy_m":accuracy,"late_minutes":late,"early_leave_minutes":early})
-                flagged=late is not None and late>schedule["late_grace_minutes"] or early is not None and early>schedule["early_grace_minutes"]
+                    if not active: raise ValueError("Lakukan check-in terlebih dahulu atau check-out sudah tercatat.")
+                    current = active; work_date = current["work_date"]
+                    if payload.get("work_date") and payload["work_date"] != work_date:
+                        raise ValueError("Shift aktif berubah. Muat ulang halaman sebelum absen pulang.")
+                    schedule = shifts.record_schedule(current, shifts.schedule_for(conn, user["id"], work_date, default))
+                    early = max(0, int((datetime.fromisoformat(schedule["scheduled_end_at"]) - now_wib).total_seconds() // 60))
+                stamp = now_wib.astimezone(timezone.utc).isoformat(timespec="seconds")
+                lat, lon, accuracy, _ = location
+                saved = store_inhouse_attendance_photo(user["id"], action, photo)
+                if action == "check_in":
+                    changed = conn.execute("""UPDATE inhouse_attendance SET status='checked_in',check_in_at=?,check_in_photo_path=?,
+                        check_in_latitude=?,check_in_longitude=?,check_in_accuracy_m=?,scheduled_start=?,scheduled_end=?,
+                        scheduled_end_at=?,shift_name=?,late_grace_minutes=?,early_grace_minutes=?,late_minutes=?,updated_at=?
+                        WHERE id=? AND status='not_started'""", (stamp,saved,lat,lon,accuracy,schedule["work_start"],schedule["work_end"],
+                        schedule["scheduled_end_at"],schedule["shift_name"],schedule["late_grace_minutes"],schedule["early_grace_minutes"],late,stamp,current["id"]))
+                else:
+                    changed = conn.execute("""UPDATE inhouse_attendance SET status='checked_out',check_out_at=?,check_out_photo_path=?,
+                        check_out_latitude=?,check_out_longitude=?,check_out_accuracy_m=?,scheduled_end=?,scheduled_end_at=?,
+                        early_leave_minutes=?,updated_at=? WHERE id=? AND status='checked_in'""",
+                        (stamp,saved,lat,lon,accuracy,schedule["work_end"],schedule["scheduled_end_at"],early,stamp,current["id"]))
+                if changed.rowcount != 1: raise ValueError("Absensi sudah diproses. Muat ulang halaman untuk melihat status terbaru.")
+                audit(conn,user["id"],"inhouse_attendance",current["id"],action,{"work_date":work_date,"timestamp":stamp,
+                    "shift_name":schedule["shift_name"],"latitude":lat,"longitude":lon,"accuracy_m":accuracy,"late_minutes":late,"early_leave_minutes":early})
+                flagged = late is not None and late > schedule["late_grace_minutes"] or early is not None and early > schedule["early_grace_minutes"]
                 if flagged:
-                    overseers=[r["id"] for r in conn.execute("SELECT id FROM users WHERE active=1 AND id!=?",(user["id"],)).fetchall()
-                               if "attendance.inhouse.read_all" in role_data(conn,r["id"])[1]]
+                    overseers = [r["id"] for r in conn.execute("SELECT id FROM users WHERE active=1 AND id!=?", (user["id"],))
+                                 if "attendance.inhouse.read_all" in role_data(conn, r["id"])[1]]
                     notices.inhouse_punctuality(conn,overseers,user,current["id"],action,late if action=="check_in" else early,
-                        schedule["work_start"] if action=="check_in" else schedule["work_end"],now_wib.strftime("%H:%M"),today)
+                        schedule["work_start"] if action=="check_in" else schedule["work_end"],now_wib.strftime("%H:%M"),work_date)
         except Exception:
             if saved: (inhouse_attendance_storage_dir()/saved).unlink(missing_ok=True)
             raise
-        notice=punctuality_note(late,early,schedule["late_grace_minutes"],schedule["early_grace_minutes"])
-        self.json_response({"ok":True,"action":action,"work_date":today,"timestamp":stamp,"late_minutes":late,"early_leave_minutes":early,
+        notice = punctuality_note(late,early,schedule["late_grace_minutes"],schedule["early_grace_minutes"])
+        self.json_response({"ok":True,"action":action,"work_date":work_date,"timestamp":stamp,"late_minutes":late,"early_leave_minutes":early,
             "punctuality":notice if notice!="Tepat waktu" else "","scheduled":schedule["work_start"] if action=="check_in" else schedule["work_end"],
             "location":{"latitude":location[0],"longitude":location[1],"accuracy_m":location[2]}})
+
+    def handle_inhouse_shift_update(self, actor: dict, payload: dict) -> None:
+        self.require(actor, "attendance.inhouse.schedule")
+        uid = payload.get("user_id")
+        if isinstance(uid, bool) or not isinstance(uid, int): raise ValueError("Pilih karyawan yang valid.")
+        try:
+            start = date.fromisoformat(str(payload.get("start", "")))
+            end = date.fromisoformat(str(payload.get("end", "")))
+        except ValueError as exc: raise ValueError("Pilih rentang tanggal shift yang valid.") from exc
+        if end < start or (end-start).days > 92: raise ValueError("Rentang jadwal maksimal 93 hari dan tanggal akhir harus setelah tanggal awal.")
+        if start < wib_now().date(): raise ValueError("Jadwal hanya dapat diatur mulai hari ini.")
+        reset = payload.get("reset") is True
+        schedule = None if reset else validate_inhouse_schedule(payload)
+        name = str(payload.get("shift_name", "")).strip()
+        if not reset and not 1 <= len(name) <= 80: raise ValueError("Nama shift wajib diisi (maksimal 80 karakter).")
+        days = [(start+timedelta(days=n)).isoformat() for n in range((end-start).days+1)]
+        with DB_LOCK, get_db() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            if not conn.execute("SELECT 1 FROM users WHERE id=? AND active=1 AND employment_type='inhouse'", (uid,)).fetchone():
+                raise ValueError("Hanya karyawan In-house aktif yang dapat dijadwalkan.")
+            for day in days:
+                if conn.execute("SELECT 1 FROM inhouse_attendance WHERE user_id=? AND work_date=? AND status!='not_started'", (uid,day)).fetchone():
+                    raise ValueError(f"Absensi tanggal {day} sudah dimulai; jadwal tidak dapat diubah.")
+            for day in days:
+                if reset:
+                    conn.execute("DELETE FROM inhouse_shifts WHERE user_id=? AND work_date=?", (uid,day))
+                else:
+                    proposed_start, proposed_end = shifts.bounds(day, schedule)
+                    for offset in (-1, 1):
+                        neighbor_day = (date.fromisoformat(day)+timedelta(days=offset)).isoformat()
+                        neighbor = conn.execute("SELECT * FROM inhouse_shifts WHERE user_id=? AND work_date=?", (uid,neighbor_day)).fetchone()
+                        if neighbor_day in days: neighbor = schedule
+                        if neighbor:
+                            a, b = shifts.bounds(neighbor_day, neighbor)
+                            if proposed_start < b and proposed_end > a:
+                                raise ValueError(f"Shift bertumpuk dengan jadwal {neighbor_day}. Sesuaikan jam kerja.")
+                    conn.execute("""INSERT INTO inhouse_shifts(user_id,work_date,shift_name,work_start,work_end,late_grace_minutes,early_grace_minutes,updated_by,updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(user_id,work_date) DO UPDATE SET shift_name=excluded.shift_name,
+                        work_start=excluded.work_start,work_end=excluded.work_end,late_grace_minutes=excluded.late_grace_minutes,
+                        early_grace_minutes=excluded.early_grace_minutes,updated_by=excluded.updated_by,updated_at=excluded.updated_at""",
+                        (uid,day,name,schedule["work_start"],schedule["work_end"],schedule["late_grace_minutes"],schedule["early_grace_minutes"],actor["id"],now_iso()))
+            audit(conn, actor["id"], "inhouse_shifts", uid, "reset" if reset else "scheduled", {"start":start.isoformat(),"end":end.isoformat(),"shift_name":name,"schedule":schedule})
+        self.json_response({"ok":True,"days":len(days)})
 
     def handle_inhouse_attendance_photo(self, user: dict, record_id: int, kind: str) -> None:
         column="check_in_photo_path" if kind=="check_in" else "check_out_photo_path"
@@ -3870,6 +3955,7 @@ class Handler(SimpleHTTPRequestHandler):
                     ("SELECT 1 FROM compensation_history WHERE user_id=? OR created_by=? LIMIT 1", (target_id, target_id), "riwayat kompensasi"),
                     ("SELECT 1 FROM event_assignments WHERE user_id=? LIMIT 1", (target_id,), "penugasan event"),
                     ("SELECT 1 FROM inhouse_attendance WHERE user_id=? LIMIT 1", (target_id,), "absensi In-house"),
+                    ("SELECT 1 FROM inhouse_shifts WHERE user_id=? LIMIT 1", (target_id,), "jadwal shift"),
                     ("SELECT 1 FROM inhouse_salary_rates WHERE user_id=? LIMIT 1", (target_id,), "riwayat gaji In-house"),
                     ("SELECT 1 FROM inhouse_payroll_payouts WHERE user_id=? LIMIT 1", (target_id,), "riwayat payroll In-house"),
                     ("SELECT 1 FROM inhouse_monthly_salary_claims WHERE user_id=? LIMIT 1", (target_id,), "klaim payroll In-house"),

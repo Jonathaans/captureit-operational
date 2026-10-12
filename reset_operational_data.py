@@ -23,6 +23,7 @@ TABLES_TO_CLEAR = (
     "inhouse_payroll_payouts",
     "inhouse_payroll_batches",
     "inhouse_attendance",
+    "inhouse_shifts",
     "kpi_reviews",
     "audit_logs",
     "sessions",
