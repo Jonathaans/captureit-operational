@@ -72,7 +72,16 @@
 }
 .sales-drawer {
   width: min(820px, 96vw);
+  height: 100%;
+  background: white;
+  overflow-y: auto;
+  box-shadow: -20px 0 50px rgba(20,11,39,.15);
 }
+.drawer-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(25,13,45,.42); backdrop-filter: blur(3px); display: flex; justify-content: flex-end; }
+.sales-drawer .drawer-body { padding: 22px; }
+.sales-drawer .drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.sales-drawer .drawer-head > div { min-width: 0; overflow-wrap: anywhere; }
+.sales-drawer .drawer-close { flex-shrink: 0; }
 .sales-grid-form,
 .sales-doc-form,
 .inventory-scan-form,
@@ -193,6 +202,9 @@
   padding: 5px 9px;
 }
 @media (max-width: 900px) {
+  .page-head-actions { flex-wrap: wrap; }
+  .sales-pipeline-select { width: 100%; min-width: 0; }
+  .sales-pipeline-select select { flex: 1; min-width: 0; }
   .sales-summary-strip,
   .sales-grid-form,
   .sales-doc-form,

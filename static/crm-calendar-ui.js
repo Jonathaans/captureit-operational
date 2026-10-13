@@ -2,7 +2,7 @@ function crmCalendarEntries() {
   return [...(state.data.calendar_code_queue || []).map(row=>({...row,queue:true})),...(state.data.events || []).filter(row=>row.status!=='cancelled').map(row=>({...row,queue:false}))];
 }
 function crmLastDate(item) { return wibDateISO(new Date(new Date(item.ends_at).valueOf()-1).toISOString()); }
-function crmEventButton(e) { return `<button type="button" class="crm-event ${e.queue || e.schedule_pending ? 'pending' : 'mapped'}" data-action="${e.queue ? 'crm-intake' : 'open-event'}" data-id="${e.id}" title="${escapeHtml(e.title)}"><b>${escapeHtml(e.title)}</b><small>${e.queue ? 'Belum dijadwalkan' : e.schedule_pending ? 'Isi jam manual' : escapeHtml(e.project_code)}</small></button>`; }
+function crmEventButton(e) { return `<button type="button" class="crm-event ${e.queue || e.schedule_pending ? 'pending' : 'mapped'}" data-action="${e.queue ? 'crm-intake' : 'open-event'}" data-id="${e.id}" data-tab="overview" title="${escapeHtml(e.title)}"><b>${escapeHtml(e.title)}</b><small>${e.queue ? 'Belum dijadwalkan' : e.schedule_pending ? 'Isi jam manual' : escapeHtml(e.project_code)}</small></button>`; }
 function renderCrmCalendar() {
   if(!state.queueMonth || state.queueMonth==='all') state.queueMonth=localDateISO().slice(0,7);
   const [year,month]=state.queueMonth.split('-').map(Number),first=new Date(Date.UTC(year,month-1,1,12)),offset=(first.getUTCDay()+6)%7;
@@ -30,12 +30,12 @@ async function handleCrmCalendarAction(action,element) {
 }
 document.addEventListener('change',event=>{if(event.target.id==='crm-calendar-month' && /^\d{4}-\d{2}$/.test(event.target.value)){state.queueMonth=event.target.value;renderPage();}});
 document.addEventListener('submit',async event=>{
-  const form=event.target;if(form.id==='crm-search-form'){event.preventDefault();state.crmSearch=new FormData(form).get('query');renderPage();return;}
-  if(!['crm-schedule-form','event-schedule-form'].includes(form.id))return;event.preventDefault();if(form.dataset.busy==='1')return;form.dataset.busy='1';
+  const form=event.target;if(form.getAttribute('id')==='crm-search-form'){event.preventDefault();state.crmSearch=new FormData(form).get('query');renderPage();return;}
+  if(!['crm-schedule-form','event-schedule-form'].includes(form.getAttribute('id')))return;event.preventDefault();if(form.dataset.busy==='1')return;form.dataset.busy='1';
   const button=form.querySelector('button[type=submit]'),errorNode=form.querySelector('.inline-form-error');button.disabled=true;errorNode.hidden=true;
   try {const p=Object.fromEntries(new FormData(form));let result;
-    if(form.id==='event-schedule-form')result=await api(`/api/events/${form.dataset.eventId}/schedule`,{method:'POST',body:JSON.stringify(p)});
+    if(form.getAttribute('id')==='event-schedule-form')result=await api(`/api/events/${form.dataset.eventId}/schedule`,{method:'POST',body:JSON.stringify(p)});
     else {const schedule=has('events.assign');if(schedule){p.starts_at=`${p.start_date}T${p.start_time}`;p.ends_at=`${p.end_date}T${p.end_time}`;p.is_full_day=p.is_full_day==='1';}result=await api(schedule ? `/api/calendar-queue/${p.id}/promote` : `/api/calendar-code/${p.id}`,{method:'POST',body:JSON.stringify(p)});}
-    $('#modal-root').innerHTML='';state.drawer=null;await refreshData();if(has('events.read_all'))await openEvent(result.event_id);toast('Jadwal tersimpan.');
+    $('#modal-root').innerHTML='';state.drawer=null;await refreshData();if(has('events.read_all'))await openEvent(result.event_id,'overview');toast('Jadwal tersimpan.');
   }catch(error){errorNode.textContent=error.message;errorNode.hidden=false;}finally{form.dataset.busy='0';button.disabled=false;}
 });

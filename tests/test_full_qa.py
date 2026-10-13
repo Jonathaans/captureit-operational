@@ -308,7 +308,7 @@ class ReleaseQATests(unittest.TestCase):
         with ops.get_db() as conn:
             intake=conn.execute("INSERT INTO calendar_code_queue(google_event_id,title,event_type,starts_at,ends_at,location,is_full_day,status) VALUES('qa-full-flow','QA Full Flow','Corporate','2025-02-03T09:00:00+07:00','2025-02-03T15:00:00+07:00','Jakarta',0,'scheduled')").lastrowid
             position=conn.execute("SELECT id FROM positions WHERE name='PIC Event'").fetchone()[0]
-        event=self.mutate(coordinator,f'/api/calendar-queue/{intake}/promote',{'project_code':'QA-FLOW-2025','is_full_day':False})['event_id']
+        event=self.mutate(coordinator,f'/api/calendar-queue/{intake}/promote',{'project_code':'QA-FLOW-2025','is_full_day':False,'starts_at':'2025-02-03T09:00','ends_at':'2025-02-03T15:00'})['event_id']
         base=f'/api/events/{event}'
         self.mutate(self.client(),'/api/rates',{'user_id':uid,'base_fee_rupiah':125000,'effective_from':'2025-01-01'})
         self.mutate(coordinator,base+'/assignment',{'user_id':uid,'assignment_type':'pic','position_id':position})

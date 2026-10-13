@@ -112,7 +112,7 @@ function openSalesLeadDialog(id = null) {
       ${lead ? renderSalesDocumentsPanel(lead, docs) : ""}
     </div>
   </aside></div>`;
-  if (!canManageSalesLead(lead)) $("input,select,textarea,button[type=submit]", $("#sales-lead-form")).forEach(node => {node.disabled=true;});
+  if (!canManageSalesLead(lead)) $$("input,select,textarea,button[type=submit]", $("#sales-lead-form")).forEach(node => {node.disabled=true;});
 }
 
 function renderInventoryPage() {
@@ -220,7 +220,7 @@ async function submitSalesDocument(form) {
   const payload = Object.fromEntries(data.entries());
   payload.lead_id = Number(payload.lead_id);
   payload.id = payload.id ? Number(payload.id) : undefined;
-  payload.items = $(".sales-document-item",form).map(row=>Object.fromEntries($("input",row).map(input=>[input.name,input.value])));
+  payload.items = $$(".sales-document-item",form).map(row=>Object.fromEntries($$("input",row).map(input=>[input.name,input.value])));
   for(const name of ["description","quantity","days","unit_price_rupiah"]) delete payload[name];
   await api("/api/sales/documents", { method: "POST", body: JSON.stringify(payload) });
   toast("Dokumen sales tersimpan.");
@@ -281,7 +281,7 @@ document.addEventListener("submit", async (event) => {
     "inventory-scan-form": submitInventoryScan,
     "delivery-order-form": submitDeliveryOrder,
   };
-  const handler = handlers[event.target.id];
+  const handler = handlers[event.target.getAttribute("id")];
   if (!handler) return;
   event.preventDefault();
   if(event.target.dataset.busy==="1")return;event.target.dataset.busy="1";

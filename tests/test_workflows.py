@@ -240,8 +240,14 @@ class WorkflowTests(unittest.TestCase):
         lead_id = json.loads(body)["id"]
         status, _, body = sales.request(f"/api/sales/leads/{lead_id}/stage", "POST", {"stage_id": stages["quote"]})
         self.assertEqual(status, 200, body.decode())
+        source = None
+        for kind in ("quote","proforma","invoice"):
+            result = self.mutate(sales, "/api/sales/documents", {"lead_id":lead_id,"kind":kind,"status":"sent","source_document_id":source,
+                "items":[{"description":"Event package","quantity":1,"days":1,"unit_price_rupiah":15000000}]})
+            source = result["id"]
         status, _, body = sales.request("/api/sales/documents", "POST", {
             "lead_id": lead_id,
+            "source_document_id": source,
             "kind": "spk",
             "document_no": "SPK-OWNER-SCOPED-26001",
             "amount_rupiah": 15000000,
@@ -284,7 +290,10 @@ class WorkflowTests(unittest.TestCase):
         })
         self.assertEqual(status, 200, body.decode())
         item_id = json.loads(body)["id"]
+        with ops.get_db() as conn:
+            spk = conn.execute("SELECT id FROM sales_documents WHERE document_no=\'SPK-DEMO-26001\'").fetchone()[0]
         status, _, body = warehouse.request("/api/delivery-orders", "POST", {
+            "spk_document_id": spk,
             "event_id": self.event_id("CI-OPS-26001"),
             "recipient_name": "Crew Test",
             "destination": "Venue Test",
@@ -295,7 +304,7 @@ class WorkflowTests(unittest.TestCase):
         delivery = json.loads(body)
         self.assertEqual(delivery["status"], "released")
         status, _, body = warehouse.request("/api/inventory/scan", "POST", {
-            "scan_code": "TEST-LENS-001",
+            "scan_code": "TEST-LENS-001-0001",
             "direction": "out",
             "quantity": 1,
             "delivery_order_id": delivery["id"],
@@ -303,13 +312,13 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(status, 200, body.decode())
         self.assertEqual(json.loads(body)["stock_on_hand"], 1)
         self.assertEqual(warehouse.request("/api/inventory/scan", "POST", {
-            "scan_code": "TEST-LENS-001",
+            "scan_code": "TEST-LENS-001-0001",
             "direction": "out",
             "quantity": 2,
             "delivery_order_id": delivery["id"],
         })[0], 400)
         status, _, body = warehouse.request("/api/inventory/scan", "POST", {
-            "scan_code": "TEST-LENS-001",
+            "scan_code": "TEST-LENS-001-0001",
             "direction": "return",
             "quantity": 1,
             "delivery_order_id": delivery["id"],
@@ -322,7 +331,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(linked[0]["out_quantity"], 1)
         self.assertEqual(linked[0]["returned_quantity"], 1)
         self.assertEqual(self.client("sales@captureit.local").request("/api/inventory/scan", "POST", {
-            "scan_code": "TEST-LENS-001",
+            "scan_code": "TEST-LENS-001-0001",
             "direction": "out",
             "quantity": 1,
         })[0], 403)

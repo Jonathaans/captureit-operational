@@ -25,9 +25,9 @@ async function handleInventoryToolsAction(action,element) {
   if(action==='close-inventory-camera'){await stopInventoryCamera();return true;}
   return false;
 }
-document.addEventListener('change',event=>{if(event.target.name==='spk_document_id' && event.target.form?.id==='delivery-order-form')prefillDeliverySpk(event.target.form,event.target.value);});
+document.addEventListener('change',event=>{if(event.target.name==='spk_document_id' && event.target.form?.getAttribute('id')==='delivery-order-form')prefillDeliverySpk(event.target.form,event.target.value);});
 document.addEventListener('submit',async event=>{
-  const form=event.target;if(form.id!=='inventory-asset-form')return;event.preventDefault();if(form.dataset.busy==='1')return;form.dataset.busy='1';const button=form.querySelector('button[type=submit]');button.disabled=true;
+  const form=event.target;if(form.getAttribute('id')!=='inventory-asset-form')return;event.preventDefault();if(form.dataset.busy==='1')return;form.dataset.busy='1';const button=form.querySelector('button[type=submit]');button.disabled=true;
   try {const p=Object.fromEntries(new FormData(form));p.existing_stock=p.existing_stock==='1';await api('/api/inventory/assets',{method:'POST',body:JSON.stringify(p)});$('#modal-root').innerHTML='';await refreshData();toast('Asset terdaftar.');}catch(error){toast(error.message,'error');}finally{form.dataset.busy='0';button.disabled=false;}
 });
 let inventoryScanner=null,inventoryScannerLoad=null,inventoryCameraSequence=0;

@@ -23,7 +23,7 @@ function runtime(instant='2026-09-30T05:00:00Z') {
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
   };
   c.window=c;vm.createContext(c);
-  for(const file of ['draft-store.js','closing-ui.js','multiday-ui.js','attendance-ui.js','staffing-ui.js','compensation-ui.js','push-ui.js','design-ui.js','operations-ui.js','sales-inventory-ui.js','app.js']) {
+  for(const file of ['draft-store.js','closing-ui.js','multiday-ui.js','attendance-ui.js','staffing-ui.js','compensation-ui.js','push-ui.js','design-ui.js','operations-ui.js','sales-inventory-ui.js','sales-documents-ui.js','inventory-tools-ui.js','crm-calendar-ui.js','app.js']) {
     let source=fs.readFileSync(path.join(root,'static',file),'utf8');
     if(file==='app.js')source=source.replace(/api\("\/api\/branding"\)\.then\(applyBranding\)\.catch\(\(\) => \{\}\);\s*loadApp\(\);\s*$/,'');
     vm.runInContext(source,c,{filename:file});
