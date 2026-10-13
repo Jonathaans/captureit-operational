@@ -2,8 +2,9 @@
 
 For the existing `/var/www/captureit-operational` installation, use Compose project
 `captureit-operational` on every command so the existing `ops-data` volume is reused.
-The new image includes the earlier `eventdays.py` fix. This update changes the HTTP
-transport and container limits; it does not migrate or replace the database.
+The new image includes the sales, inventory, manual-schedule and closing workflows.
+Startup applies additive database migrations while retaining existing records.
+See [workflow notes](../UPDATE-WORKFLOW-2026-10-12.md) for features and access.
 
 ## Before updating
 
@@ -11,17 +12,24 @@ Keep the current HTTPS preview gate until role checks, uploads and backup recove
 have been verified. Preserve `.env`; do not copy the example over an existing file.
 Confirm `DEMO_MODE=false` and `COOKIE_SECURE=1` without printing credentials.
 
-After checking out this branch, run as root:
+After merging the update into `main`, run this whole block as root. It also works
+when the original VPS checkout has diverged from `origin/main`:
 
 ```bash
+bash -se <<'BASH'
 cd /var/www/captureit-operational
-bash deploy/backup-vps.sh
-docker compose -p captureit-operational config --quiet
-docker compose -p captureit-operational up -d --build --no-deps captureit-ops
-docker compose -p captureit-operational ps
-docker compose -p captureit-operational logs --tail=40 captureit-ops
-curl --retry 5 --retry-connrefused --retry-delay 1 --max-time 10 -fsSI http://127.0.0.1:8000/
+git fetch origin main
+git show origin/main:deploy/update-vps.sh > /tmp/captureit-update.sh
+OPS_SOURCE_ROOT="$PWD" bash /tmp/captureit-update.sh
+BASH
 ```
+
+The update script verifies the existing named data volume, builds from a separate
+clean worktree, backs up the running service, and verifies the full running commit
+SHA through `/api/health`. It does not reset the VPS branch. Use the printed release
+directory for subsequent Compose commands. Continue editing `.env` in the original
+source directory so future releases receive those settings. A failed fetch/build
+stops deployment; do not continue manually by rebuilding the old checkout.
 
 The backup script briefly stops only `captureit-ops`, copies its whole `/data`
 directory, verifies the copied SQLite database, and restarts the same container.
@@ -123,20 +131,14 @@ Do not use global prune commands, `down -v`, or stop/restart the Docker daemon.
 
 ## Roll back this update
 
-This transport update makes no schema changes, so first roll back only the code:
-
-```bash
-cd /var/www/captureit-operational
-git switch fix-ops-docker-eventdays
-docker compose -p captureit-operational up -d --build --no-deps captureit-ops
-```
-
-The command uses the known previous local branch on this VPS. Keep the preview
-gate on that development-server version. If an image rebuild is unavailable,
-the backup's `running-image.txt` and `captureit-ops-rollback:<timestamp>` retain
-the previous image for an explicit Compose image override. Keep the project
-name and `/data` volume unchanged. Do not restore an older database just to roll
-back code; that would discard new records.
+This update adds document relationships, serialized assets and schedule metadata.
+The backup's `running-image.txt` and `captureit-ops-rollback:<timestamp>` retain
+the previous image for an explicit Compose image override. Preserve the project
+name and `/data` volume. Before running old code on migrated data, verify its
+compatibility with any documents and asset movements created since deployment;
+old code does not enforce the new asset and source-document rules. Retain a backup
+of the current data before a recovery operation. Restoring an older database
+discards records created afterward, so it is not an automatic rollback step.
 
 `backup.py` is also included in the new image. Its SQLite online backup is
 transactionally consistent, but files and database are copied at different times.

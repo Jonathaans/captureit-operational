@@ -40,6 +40,7 @@ import notification_center as notices
 import push_delivery
 import attendance_shifts as shifts
 import sales_inventory
+import operational_schedule
 
 
 ROOT = Path(__file__).resolve().parent
@@ -74,6 +75,7 @@ ROLE_LIST = [
     ("design_head", "Head Design"),
     ("design_team", "Team Design"),
     ("sales_staff", "Sales Staff"),
+    ("admin_sales", "Admin Sales"),
     ("content_team", "Content Team"),
     ("inhouse_employee", "In-house Staff"),
     ("crew", "Crew"),
@@ -188,6 +190,8 @@ ROLE_PERMISSIONS = {
                     "attendance.inhouse.self", "inhouse_payroll.read_own"},
     "design_team": {"events.read_all", "design.read", "design.update", "attendance.inhouse.self", "inhouse_payroll.read_own"},
     "sales_staff": {"attendance.inhouse.self", "inhouse_payroll.read_own", "sales.read_own", "sales.manage_own", "delivery_orders.read"},
+    "admin_sales": {"attendance.inhouse.self", "inhouse_payroll.read_own", "sales.read_all", "sales.manage_all", "sales.pipeline.manage",
+                    "sales.dashboard", "inventory.read", "delivery_orders.read", "delivery_orders.manage"},
     "content_team": {"attendance.inhouse.self", "inhouse_payroll.read_own"},
     "inhouse_employee": {"attendance.inhouse.self", "inhouse_payroll.read_own"},
     "crew": {"events.read_own", "attendance.self", "kpi.read_own", "payroll.read_own"},
@@ -470,7 +474,7 @@ def account_classification(role_code: str) -> tuple[str, str]:
     employment = 'freelancer' if role_code in {'crew', 'pic_event'} else 'inhouse'
     department = {'administrator':'Management','head_operations':'Operations','event_coordinator':'Operations',
         'head_finance':'Finance','finance':'Finance','admin_finance':'Finance','warehouse_head':'Warehouse',
-        'warehouse_staff':'Warehouse','design_team':'Design','design_head':'Design','sales_staff':'Sales','content_team':'Content'}.get(role_code,'Other')
+        'warehouse_staff':'Warehouse','design_team':'Design','design_head':'Design','sales_staff':'Sales','admin_sales':'Sales','content_team':'Content'}.get(role_code,'Other')
     return employment, department
 
 
@@ -498,6 +502,7 @@ def audit(conn: sqlite3.Connection, actor_id: int | None, entity_type: str, enti
 def seed_reference_data(conn: sqlite3.Connection) -> None:
     conn.executescript((ROOT / "schema.sql").read_text(encoding="utf-8"))
     sales_inventory.seed_reference_data(conn)
+    operational_schedule.migrate(conn)
     design_columns = {r['name'] for r in conn.execute('PRAGMA table_info(design_tasks)')}
     for name, definition in {'brief_text': "TEXT NOT NULL DEFAULT ''", 'brief_version': 'INTEGER NOT NULL DEFAULT 0',
                              'brief_sent_at': 'TEXT', 'brief_sent_by': 'INTEGER REFERENCES users(id) ON DELETE SET NULL',
@@ -603,7 +608,7 @@ def seed_reference_data(conn: sqlite3.Connection) -> None:
         ) THEN 'freelancer' ELSE 'inhouse' END""")
     departments = {"administrator":"Management","head_operations":"Operations","event_coordinator":"Operations",
         "head_finance":"Finance","finance":"Finance","admin_finance":"Finance","warehouse_head":"Warehouse",
-        "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","content_team":"Content"}
+        "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","admin_sales":"Sales","content_team":"Content"}
     for role_code, department in departments.items():
         conn.execute("UPDATE users SET department=? WHERE department='' AND id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE r.code=?)", (department,role_code))
     for code, description in PERMISSION_DESCRIPTIONS.items():
@@ -838,7 +843,7 @@ def initialize(seed: bool | None = None) -> None:
             ) THEN 'freelancer' ELSE 'inhouse' END""")
         departments = {"administrator":"Management","head_operations":"Operations","event_coordinator":"Operations",
             "head_finance":"Finance","finance":"Finance","admin_finance":"Finance","warehouse_head":"Warehouse",
-            "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","content_team":"Content"}
+            "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","admin_sales":"Sales","content_team":"Content"}
         for role_code, department in departments.items():
             conn.execute("UPDATE users SET department=? WHERE department='' AND id IN (SELECT ur.user_id FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE r.code=?)", (department,role_code))
         migrate_history(conn)
@@ -1091,7 +1096,7 @@ def user_events(conn: sqlite3.Connection, user: dict) -> list[dict]:
         where = "WHERE EXISTS (SELECT 1 FROM event_assignments mine WHERE mine.event_id=e.id AND mine.user_id=?)"
         params = (user["id"],)
     rows = conn.execute(f"""
-        SELECT e.id,e.project_code,e.operational_code,e.project_code_is_temporary,e.is_manual,e.title,e.event_type,e.starts_at,e.ends_at,e.location,e.is_full_day,e.status,
+        SELECT e.id,e.project_code,e.operational_code,e.project_code_is_temporary,e.is_manual,e.title,e.event_type,e.starts_at,e.ends_at,e.location,e.is_full_day,e.status,e.schedule_pending,e.schedule_manual,
                u.full_name AS coordinator_name,e.coordinator_id,ca.updated_at AS advance_updated_at,
                eo.vehicle_id,eo.driver_name,eo.loading_date,eo.loading_time,eo.vehicle_return_at,
                eo.transport_modes,eo.courier_name,eo.other_transport,eo.updated_at AS logistics_updated_at,
@@ -1221,6 +1226,7 @@ def event_detail(conn: sqlite3.Connection, event_id: int, viewer_id: int, can_re
     result["event_days"] = eventdays.event_dates(result)
     result["multi_day"] = eventdays.is_multiday(result)
     for row in result["assignments"]:
+        row["attendance_locked"] = operational_schedule.assignment_has_attendance(conn, row["assignment_id"])
         row["days"] = eventdays.day_attendance(conn, result, row["assignment_id"]) if result["multi_day"] else []
         if result["multi_day"]:
             row["needs_action"] = any(day["needs_action"] for day in row["days"])
@@ -1246,8 +1252,8 @@ def event_detail(conn: sqlite3.Connection, event_id: int, viewer_id: int, can_re
     if viewer_permissions & {"delivery_orders.read", "delivery_orders.manage"}:
         result["delivery_orders"] = [dict(row) for row in conn.execute("""
             SELECT id,number,status,recipient_name,destination,released_at
-            FROM delivery_orders WHERE event_id=? ORDER BY created_at DESC,id DESC
-        """, (event_id,)).fetchall()]
+            FROM delivery_orders WHERE event_id=? AND (?=0 OR lead_id IN (SELECT id FROM sales_leads WHERE owner_id=?)) ORDER BY created_at DESC,id DESC
+        """, (event_id,int(sales_inventory.own_sales_only({"permissions":viewer_permissions})),viewer_id)).fetchall()]
     else:
         result["delivery_orders"] = []
     if viewer_permissions & {'design.read', 'design.update'}:
@@ -2043,10 +2049,8 @@ def google_sync(conn: sqlite3.Connection) -> dict:
                 if not start_value or not end_value:
                     skipped += 1
                     continue
-                try:
-                    full_day = int("dateTime" not in start_obj or (parse_iso(end_value) - parse_iso(start_value)).total_seconds() >= 8 * 3600)
-                except ValueError:
-                    full_day = int("dateTime" not in start_obj)
+                start_value, end_value = operational_schedule.calendar_dates(start_value, end_value)
+                full_day = int("dateTime" not in start_obj)
                 status = "cancelled" if item.get("status") == "cancelled" else "scheduled"
                 if existing and existing["status"] == "completed" and status != "cancelled":
                     status = "completed"
@@ -2054,9 +2058,11 @@ def google_sync(conn: sqlite3.Connection) -> dict:
                 values = (title,item.get("eventType", "Photobooth"),start_value,end_value,
                           item.get("location", ""),full_day,status,item.get("updated"))
                 if existing:
-                    conn.execute("""UPDATE events SET title=?,event_type=?,starts_at=?,ends_at=?,location=?,
-                        is_full_day=CASE WHEN is_full_day_manual=1 THEN is_full_day ELSE ? END,status=?,calendar_updated_at=?,updated_at=? WHERE google_event_id=?""",
-                                 (values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7],now_iso(),google_id))
+                    conn.execute("""UPDATE events SET title=?,event_type=?,
+                        starts_at=CASE WHEN schedule_pending=1 THEN ? ELSE starts_at END,
+                        ends_at=CASE WHEN schedule_pending=1 THEN ? ELSE ends_at END,location=?,
+                        calendar_start_date=?,calendar_end_date=?,status=?,calendar_updated_at=?,updated_at=? WHERE google_event_id=?""",
+                        (values[0],values[1],values[2],values[3],values[4],start_value[:10],end_value[:10],values[6],values[7],now_iso(),google_id))
                     reconcile_assignment_days(conn, existing['id'])
                     notices.event_changed(conn, existing, conn.execute('SELECT * FROM events WHERE id=?', (existing['id'],)).fetchone())
                     updated += 1
@@ -2146,8 +2152,20 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_sales_lead_stage(user, int(parsed.path.split("/")[4]), payload)
             elif parsed.path == "/api/sales/documents":
                 self.handle_sales_document_save(user, payload)
+            elif re.fullmatch(r"/api/sales/spk/\d+/event", parsed.path):
+                with DB_LOCK, get_db() as conn:
+                    conn.execute("BEGIN IMMEDIATE")
+                    result = sales_inventory.create_spk_event(conn, user, int(parsed.path.split("/")[4]), payload)
+                    audit(conn, user["id"], "event", result["event_id"], "created_from_spk", {"spk_id": int(parsed.path.split("/")[4])})
+                self.json_response(result)
             elif parsed.path == "/api/inventory/items":
                 self.handle_inventory_item_save(user, payload)
+            elif parsed.path == "/api/inventory/assets":
+                with DB_LOCK, get_db() as conn:
+                    conn.execute("BEGIN IMMEDIATE")
+                    result = sales_inventory.save_asset(conn, user, payload)
+                    audit(conn, user["id"], "inventory_asset", result["id"], "registered", {"asset_code": payload.get("asset_code", "")})
+                self.json_response(result)
             elif parsed.path == "/api/inventory/scan":
                 self.handle_inventory_scan(user, payload)
             elif parsed.path == "/api/delivery-orders":
@@ -2204,6 +2222,8 @@ class Handler(SimpleHTTPRequestHandler):
                 self.handle_event_full_day(user, int(parsed.path.split("/")[3]), payload)
             elif re.fullmatch(r"/api/events/\d+/assignment", parsed.path):
                 self.handle_assignment(user, int(parsed.path.split("/")[3]), payload)
+            elif re.fullmatch(r"/api/events/\d+/schedule", parsed.path):
+                self.handle_event_schedule(user, int(parsed.path.split("/")[3]), payload)
             elif re.fullmatch(r"/api/events/\d+/performance", parsed.path):
                 self.handle_event_performance(user, int(parsed.path.split("/")[3]), payload)
             elif re.fullmatch(r"/api/events/\d+/group", parsed.path):
@@ -2371,7 +2391,8 @@ class Handler(SimpleHTTPRequestHandler):
             self.json_response(push_delivery.config())
             return
         if path == "/api/health":
-            self.json_response({"ok": True, "app": "Capture It Operations"})
+            self.json_response({"ok": True, "app": "Capture It Operations", "revision": os.environ.get("OPS_BUILD_REVISION", "development"),
+                                "features": ["sales_pipeline", "linked_sales_documents", "inventory_assets", "delivery_scanning"]})
             return
         if path == "/api/branding":
             with get_db() as conn:
@@ -2423,6 +2444,23 @@ class Handler(SimpleHTTPRequestHandler):
                     self.json_response({"user": user_summary(conn, user["id"])})
                 elif path == "/api/bootstrap":
                     self.json_response(bootstrap_payload(conn, user))
+                elif re.fullmatch(r"/api/(sales/documents|delivery-orders|inventory/items)/\d+/(print|labels)", path):
+                    parts = path.strip('/').split('/')
+                    entity_id = int(parts[-2])
+                    if path.startswith('/api/sales/documents/') and parts[-1] == 'print':
+                        html = sales_inventory.document_print(conn, user, entity_id)
+                    elif path.startswith('/api/delivery-orders/') and parts[-1] == 'print':
+                        html = sales_inventory.delivery_print(conn, user, entity_id)
+                    elif path.startswith('/api/inventory/items/') and parts[-1] == 'labels':
+                        html = sales_inventory.inventory_labels(conn, user, entity_id)
+                    else:
+                        raise ValueError('Dokumen tidak ditemukan.')
+                    content = html.encode('utf-8')
+                    self.send_response(HTTPStatus.OK)
+                    self.send_header('Content-Type', 'text/html; charset=utf-8')
+                    self.send_header('Content-Length', str(len(content)))
+                    self.end_headers()
+                    self.wfile.write(content)
                 elif path == "/api/notifications":
                     before = query.get('before', [''])[0]
                     if before and (not before.isdigit() or not 0<int(before)<=2**63-1):
@@ -3121,6 +3159,24 @@ class Handler(SimpleHTTPRequestHandler):
         # Return the committed values; the form need not refetch and overwrite its inputs.
         self.json_response({"ok":True,"logistics":saved})
 
+    def handle_event_schedule(self, user: dict, event_id: int, payload: dict) -> None:
+        self.require(user, 'events.assign')
+        starts, ends = operational_schedule.manual_bounds(payload)
+        with DB_LOCK, get_db() as conn:
+            conn.execute('BEGIN IMMEDIATE')
+            event = conn.execute('SELECT * FROM events WHERE id=?', (event_id,)).fetchone()
+            if not event or event['status'] != 'scheduled':
+                raise ValueError('Hanya event terjadwal yang dapat mengubah jam.')
+            report = conn.execute('SELECT status FROM event_closing_reports WHERE event_id=?', (event_id,)).fetchone()
+            if operational_schedule.event_has_attendance(conn, event_id) or (report and report['status'] in {'submitted', 'accepted'}):
+                raise ValueError('Jadwal terkunci karena absensi atau laporan sudah tercatat.')
+            conn.execute('UPDATE events SET starts_at=?,ends_at=?,schedule_pending=0,schedule_manual=1,coordinator_id=COALESCE(coordinator_id,?),updated_at=? WHERE id=?',
+                         (starts, ends, user['id'], now_iso(), event_id))
+            reconcile_assignment_days(conn, event_id)
+            notices.event_changed(conn, event, conn.execute('SELECT * FROM events WHERE id=?', (event_id,)).fetchone())
+            audit(conn,user['id'],'event',event_id,'manual_schedule',{'starts_at':starts,'ends_at':ends})
+        self.json_response({'ok':True,'event_id':event_id})
+
     def handle_assignment(self, user: dict, event_id: int, payload: dict) -> None:
         self.require(user,"events.assign")
         action = payload.get("action", "add")
@@ -3190,6 +3246,8 @@ class Handler(SimpleHTTPRequestHandler):
                 assignment = conn.execute("SELECT * FROM event_assignments WHERE id=? AND event_id=?", (assignment_id,event_id)).fetchone()
                 if not assignment:
                     raise ValueError("Penugasan tidak ditemukan.")
+                if operational_schedule.assignment_has_attendance(conn, assignment_id):
+                    raise ValueError('Crew/PIC yang sudah memiliki absensi tidak dapat dihapus dari jadwal event.')
                 conn.execute("DELETE FROM event_assignments WHERE id=?", (assignment_id,))
                 notices.assignment(conn, event, assignment['user_id'], assignment_id, removed=True)
                 audit(conn,user["id"],"event_assignment",assignment_id,"removed",{"event_id":event_id,"user_id":assignment["user_id"]})
@@ -3201,6 +3259,8 @@ class Handler(SimpleHTTPRequestHandler):
             except (TypeError, ValueError) as exc:
                 raise ValueError("Pilih staff yang akan ditugaskan.") from exc
             kind = payload.get("assignment_type")
+            if event['schedule_pending']:
+                raise ValueError('Isi jam event manual sebelum mapping Crew/PIC.')
             if kind not in {"crew","pic"}:
                 raise ValueError("Jenis penugasan harus Crew atau PIC Event.")
             if position_id is None:
@@ -3300,13 +3360,21 @@ class Handler(SimpleHTTPRequestHandler):
         if not isinstance(submissions, list):
             raise ValueError("Data penilaian event tidak valid.")
         with DB_LOCK, get_db() as conn:
-            event = conn.execute("SELECT id,status FROM events WHERE id=?", (event_id,)).fetchone()
+            conn.execute('BEGIN IMMEDIATE')
+            event = conn.execute("SELECT * FROM events WHERE id=?", (event_id,)).fetchone()
             if not event:
                 raise ValueError("Event tidak ditemukan.")
             if event["status"] == "cancelled":
                 raise ValueError("Event yang dibatalkan tidak dapat di-clear.")
             if event["status"] != "completed":
-                raise ValueError("Tandai event clear sebelum mengisi penilaian Crew/PIC.")
+                if not can_review_closing(user, event):
+                    raise PermissionError('Hanya coordinator event ini atau Administrator yang dapat menyelesaikan event.')
+                report = conn.execute('SELECT status FROM event_closing_reports WHERE event_id=?', (event_id,)).fetchone()
+                from closing_reports import event_time_finished
+                if not event_time_finished(event) or not report or report['status'] != 'accepted':
+                    raise ValueError('Jam event harus selesai dan laporan PIC harus diterima sebelum finish.')
+                if event_unresolved_attendance(conn, event_id):
+                    raise ValueError('Selesaikan atau koreksi absensi Crew/PIC sebelum finish.')
             assignments = [dict(row) for row in conn.execute("""
                 SELECT id,user_id,assignment_type FROM event_assignments
                 WHERE event_id=? AND assignment_type IN ('crew','pic') ORDER BY id
@@ -3340,7 +3408,7 @@ class Handler(SimpleHTTPRequestHandler):
                 if not isinstance(note, str):
                     raise ValueError("Catatan evaluasi tidak valid.")
                 insert_event_performance_review(conn, assignment["id"], user["id"], scores, note.strip())
-            conn.execute("""UPDATE events SET completed_at=COALESCE(completed_at,?),
+            conn.execute("""UPDATE events SET status='completed',completed_at=COALESCE(completed_at,?),
                 completed_by=COALESCE(completed_by,?),updated_at=? WHERE id=?""",
                 (stamp,user["id"],stamp,event_id))
             audit(conn,user["id"],"event",event_id,"cleared_with_performance",{
@@ -3467,11 +3535,14 @@ class Handler(SimpleHTTPRequestHandler):
         if payload.get("confirm") is not True:
             raise ValueError("Konfirmasi penghapusan diperlukan.")
         with DB_LOCK, get_db() as conn:
+            conn.execute('BEGIN IMMEDIATE')
             event = conn.execute("SELECT id,project_code,is_manual FROM events WHERE id=?", (event_id,)).fetchone()
             if not event:
                 raise ValueError("Event tidak ditemukan.")
             if not event["is_manual"]:
                 raise ValueError("Hanya event manual yang dapat dihapus. Event dari Calendar tidak dapat dihapus di sini.")
+            if operational_schedule.event_has_attendance(conn, event_id):
+                raise ValueError('Event yang sudah memiliki absensi Crew/PIC tidak dapat dihapus.')
             if conn.execute("""SELECT 1 FROM payroll_assignment_claims c JOIN event_assignments ea ON ea.id=c.assignment_id
                     WHERE ea.event_id=?""", (event_id,)).fetchone():
                 raise ValueError("Event ini sudah masuk batch payroll dan tidak dapat dihapus.")
@@ -3898,7 +3969,7 @@ class Handler(SimpleHTTPRequestHandler):
         employment_type = "freelancer" if role_code in {"crew","pic_event"} else "inhouse"
         department = {"administrator":"Management","head_operations":"Operations","event_coordinator":"Operations",
             "head_finance":"Finance","finance":"Finance","admin_finance":"Finance","warehouse_head":"Warehouse",
-            "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","content_team":"Content"}.get(role_code,"Other")
+            "warehouse_staff":"Warehouse","design_team":"Design","design_head":"Design","sales_staff":"Sales","admin_sales":"Sales","content_team":"Content"}.get(role_code,"Other")
         with get_db() as conn:
             cur = conn.execute("INSERT INTO users(full_name,email,password_hash,active,employment_type,department) VALUES(?,?,?,1,?,?)",
                                (full_name,email,password_hash(password),employment_type,department))
@@ -4129,7 +4200,8 @@ class Handler(SimpleHTTPRequestHandler):
         project_code = str(payload.get("project_code", "")).strip()
         if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,49}", project_code):
             raise ValueError("Kode project harus 3–50 karakter: huruf, angka, titik, garis bawah, atau tanda hubung.")
-        with get_db() as conn:
+        with DB_LOCK, get_db() as conn:
+            conn.execute('BEGIN IMMEDIATE')
             intake = conn.execute("SELECT * FROM calendar_code_queue WHERE id=?", (intake_id,)).fetchone()
             if not intake:
                 raise ValueError("Event Calendar tidak ditemukan atau sudah dipasangkan.")
@@ -4138,9 +4210,12 @@ class Handler(SimpleHTTPRequestHandler):
             duplicate = conn.execute("SELECT title FROM events WHERE project_code=? COLLATE NOCASE", (project_code,)).fetchone()
             if duplicate:
                 raise ValueError(f"Kode {project_code} sudah digunakan oleh event {duplicate['title']}.")
-            cur = conn.execute("""INSERT INTO events(project_code,google_event_id,title,event_type,starts_at,ends_at,location,is_full_day,status,calendar_updated_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?)""", (project_code,intake["google_event_id"],intake["title"],intake["event_type"],
-                intake["starts_at"],intake["ends_at"],intake["location"],intake["is_full_day"],intake["status"],intake["calendar_updated_at"]))
+            if payload.get('starts_at') or payload.get('ends_at'):
+                self.require(actor, 'events.assign')
+            starts, ends, pending = operational_schedule.promoted_schedule(intake, payload)
+            cur = conn.execute("""INSERT INTO events(project_code,google_event_id,title,event_type,starts_at,ends_at,location,is_full_day,status,calendar_updated_at,schedule_pending,schedule_manual)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (project_code,intake["google_event_id"],intake["title"],intake["event_type"],
+                starts,ends,intake["location"],0,intake["status"],intake["calendar_updated_at"],pending,1-pending))
             event_id = cur.lastrowid
             conn.execute("INSERT INTO cash_advances(event_id,status) VALUES(?,'not_submitted')", (event_id,))
             conn.execute("INSERT INTO warehouse_checks(event_id,status) VALUES(?,'needs_prep')", (event_id,))
@@ -4159,20 +4234,22 @@ class Handler(SimpleHTTPRequestHandler):
         if requested_project_code and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{2,49}",requested_project_code):
             raise ValueError("Kode project harus 3–50 karakter: huruf, angka, titik, garis bawah, atau tanda hubung.")
         with DB_LOCK,get_db() as conn:
+            conn.execute('BEGIN IMMEDIATE')
             intake=conn.execute("SELECT * FROM calendar_code_queue WHERE id=?",(intake_id,)).fetchone()
             if not intake: raise ValueError("Event Calendar tidak ditemukan atau sudah dijadwalkan.")
             if intake["status"]!="scheduled": raise ValueError("Event yang dibatalkan tidak dapat dijadwalkan.")
             duplicate=conn.execute("SELECT title FROM events WHERE project_code=? COLLATE NOCASE",(requested_project_code,)).fetchone() if requested_project_code else None
             if duplicate: raise ValueError(f"Kode {requested_project_code} sudah digunakan oleh event {duplicate['title']}.")
-            is_full_day=int(intake["is_full_day"] if requested_full_day is None else requested_full_day in (True,1,"1"))
+            is_full_day=int(requested_full_day in (True,1,"1"))
             manual_override=int(requested_full_day is not None)
             is_temporary=not bool(requested_project_code)
             temporary_code=f"OPS-{datetime.now(WIB).strftime('%y%m%d')}-{secrets.token_hex(3).upper()}" if is_temporary else None
             project_code=requested_project_code or temporary_code
+            starts, ends, pending = operational_schedule.promoted_schedule(intake, payload)
             cur=conn.execute("""INSERT INTO events(project_code,operational_code,project_code_is_temporary,google_event_id,title,event_type,
-                starts_at,ends_at,location,is_full_day,is_full_day_manual,status,calendar_updated_at,coordinator_id)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(project_code,temporary_code,int(is_temporary),intake["google_event_id"],intake["title"],intake["event_type"],
-                intake["starts_at"],intake["ends_at"],intake["location"],is_full_day,manual_override,intake["status"],intake["calendar_updated_at"],actor["id"]))
+                starts_at,ends_at,location,is_full_day,is_full_day_manual,status,calendar_updated_at,coordinator_id,schedule_pending,schedule_manual)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",(project_code,temporary_code,int(is_temporary),intake["google_event_id"],intake["title"],intake["event_type"],
+                starts,ends,intake["location"],is_full_day,manual_override,intake["status"],intake["calendar_updated_at"],actor["id"],pending,1-pending))
             event_id=cur.lastrowid
             conn.execute("INSERT INTO cash_advances(event_id,status) VALUES(?,'not_submitted')",(event_id,))
             conn.execute("INSERT INTO warehouse_checks(event_id,status) VALUES(?,'needs_prep')",(event_id,))

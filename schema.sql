@@ -535,6 +535,17 @@ CREATE TABLE IF NOT EXISTS sales_documents (
 );
 CREATE INDEX IF NOT EXISTS idx_sales_documents_lead_kind ON sales_documents(lead_id,kind,created_at);
 
+CREATE TABLE IF NOT EXISTS sales_document_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document_id INTEGER NOT NULL REFERENCES sales_documents(id) ON DELETE CASCADE,
+    description TEXT NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity > 0),
+    days INTEGER NOT NULL DEFAULT 1 CHECK (days > 0),
+    unit_price_rupiah INTEGER NOT NULL CHECK (unit_price_rupiah >= 0),
+    position INTEGER NOT NULL,
+    UNIQUE(document_id,position)
+);
+
 CREATE TABLE IF NOT EXISTS inventory_locations (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
@@ -600,6 +611,19 @@ CREATE TABLE IF NOT EXISTS inventory_movements (
 );
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_item ON inventory_movements(item_id,created_at);
 CREATE INDEX IF NOT EXISTS idx_inventory_movements_delivery ON inventory_movements(delivery_order_id,item_id);
+
+CREATE TABLE IF NOT EXISTS inventory_assets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    item_id INTEGER NOT NULL REFERENCES inventory_items(id) ON DELETE RESTRICT,
+    asset_code TEXT NOT NULL UNIQUE,
+    serial_number TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'available' CHECK (status IN ('available','out','maintenance','retired')),
+    delivery_order_id INTEGER REFERENCES delivery_orders(id) ON DELETE RESTRICT,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_inventory_assets_item_status ON inventory_assets(item_id,status);
 
 CREATE TABLE IF NOT EXISTS design_tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

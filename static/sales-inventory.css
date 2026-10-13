@@ -72,7 +72,16 @@
 }
 .sales-drawer {
   width: min(820px, 96vw);
+  height: 100%;
+  background: white;
+  overflow-y: auto;
+  box-shadow: -20px 0 50px rgba(20,11,39,.15);
 }
+.drawer-backdrop { position: fixed; inset: 0; z-index: 50; background: rgba(25,13,45,.42); backdrop-filter: blur(3px); display: flex; justify-content: flex-end; }
+.sales-drawer .drawer-body { padding: 22px; }
+.sales-drawer .drawer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.sales-drawer .drawer-head > div { min-width: 0; overflow-wrap: anywhere; }
+.sales-drawer .drawer-close { flex-shrink: 0; }
 .sales-grid-form,
 .sales-doc-form,
 .inventory-scan-form,
@@ -193,6 +202,9 @@
   padding: 5px 9px;
 }
 @media (max-width: 900px) {
+  .page-head-actions { flex-wrap: wrap; }
+  .sales-pipeline-select { width: 100%; min-width: 0; }
+  .sales-pipeline-select select { flex: 1; min-width: 0; }
   .sales-summary-strip,
   .sales-grid-form,
   .sales-doc-form,
@@ -206,5 +218,48 @@
   .delivery-card {
     grid-template-columns: 1fr;
   }
+}
+
+
+.sales-kanban { grid-template-columns: repeat(5,minmax(280px,1fr)); }
+.sales-drag-handle { float:right; border:0; border-radius:6px; padding:8px 12px; background:#f0eaf8; color:var(--purple); cursor:grab; touch-action:none; }
+.sales-row-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.sales-doc-row { grid-template-columns:minmax(0,1fr); }
+.sales-doc-row b,.sales-summary-strip b { overflow-wrap:anywhere; }
+.sales-document-item { display:grid; grid-template-columns:minmax(0,2fr) 65px 65px minmax(100px,1fr) 40px; gap:8px; align-items:end; margin-bottom:12px; }
+.sales-grid-form fieldset { border:0; margin:0; padding:0; min-width:0; }
+.event-schedule-form { margin:16px 0; padding:16px; background:#f6f2fb; border-radius:8px; }
+.inventory-camera-dialog { width:min(540px,95vw); border:0; border-radius:12px; padding:20px; }
+.inventory-camera-dialog::backdrop { background:#21123ba8; }
+.inventory-camera-dialog input { width:100%; }
+#inventory-camera-view { min-height:180px; }
+.crm-calendar { background:white; border:1px solid #e9e2f2; border-radius:12px; overflow:hidden; }
+.crm-calendar-toolbar { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:16px; }
+.crm-calendar-toolbar input { width:auto; max-width:100%; }
+.crm-calendar-legend { display:flex; flex-wrap:wrap; gap:16px; padding:0 16px 14px; font-size:11px; color:#746783; }
+.crm-calendar-legend span::before { content:""; display:inline-block; height:8px; width:8px; border-radius:50%; background:#e7b857; margin-right:6px; }
+.crm-calendar-legend span+span::before { background:#8b60c5; }
+.crm-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); }
+.crm-weekday { padding:12px 2px; background:#f7f4fb; text-align:center; font-size:11px; font-weight:bold; color:#6e627b; }
+.crm-day { min-height:130px; padding:6px; border-top:1px solid #eee8f5; border-right:1px solid #eee8f5; min-width:0; }
+.crm-day.outside { background:#faf9fc; color:#aaa; }
+.crm-day.today { background:#f6f1fd; }
+.crm-day-number { background:transparent; color:inherit; border:0; border-radius:50%; width:28px; height:28px; font-weight:700; cursor:pointer; }
+.crm-day.today .crm-day-number { background:var(--purple); color:white; }
+.crm-event { display:block; width:100%; padding:7px; margin-top:5px; border:1px solid #e2d5f3; border-left:3px solid #8b60c5; border-radius:6px; background:#f4edfc; text-align:left; cursor:pointer; color:#4f376b; font:inherit; min-width:0; }
+.crm-event.pending { background:#fff8e7; border-color:#f0dfaf; border-left-color:#d4a344; color:#775820; }
+.crm-event b { display:block; font-size:11px; overflow-wrap:anywhere; }
+.crm-event small { display:block; font-size:9px; margin-top:3px; }
+@media(max-width:700px) {
+  .sales-summary-strip { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .sales-document-item { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .sales-document-item>.field-label:first-child { grid-column:1/-1; }
+  .sales-document-item>.field-label:nth-child(4) { grid-column:span 2; }
+  .crm-calendar-toolbar { padding:10px; }
+  .crm-day { min-height:96px; padding:3px; }
+  .crm-event { padding:4px; border-left-width:2px; }
+  .crm-event b { font-size:9px; }
+  .crm-event small { display:none; }
+  .crm-day-number { width:24px; height:24px; }
 }
 
